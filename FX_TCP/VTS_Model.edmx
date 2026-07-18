@@ -1,0 +1,863 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<edmx:Edmx Version="3.0" xmlns:edmx="http://schemas.microsoft.com/ado/2009/11/edmx">
+  <!-- EF Runtime content -->
+  <edmx:Runtime>
+    <!-- SSDL content -->
+    <edmx:StorageModels>
+    <Schema Namespace="ThirdEyEModel.Store" Provider="System.Data.SqlClient" ProviderManifestToken="2012" Alias="Self" xmlns:store="http://schemas.microsoft.com/ado/2007/12/edm/EntityStoreSchemaGenerator" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm/ssdl">
+        <EntityType Name="VehicleTracking">
+          <Key>
+            <PropertyRef Name="PK_Vehicle" />
+          </Key>
+          <Property Name="PK_Vehicle" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="Latitude" Type="float" Nullable="false" />
+          <Property Name="Longitude" Type="float" Nullable="false" />
+          <Property Name="Altitude" Type="float" Nullable="false" />
+          <Property Name="EngineStatus" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="Course" Type="float" Nullable="false" />
+          <Property Name="Temperature" Type="float" Nullable="false" />
+          <Property Name="Fuel" Type="float" Nullable="false" />
+          <Property Name="EventCode" Type="varchar" MaxLength="5" />
+          <Property Name="RemainingCash" Type="int" />
+          <Property Name="UpdateTime" Type="datetime" Nullable="false" />
+          <Property Name="ServerTime" Type="datetime" Nullable="false" />
+          <Property Name="FK_Depo_In" Type="uniqueidentifier" />
+          <Property Name="DepoInDateTime" Type="datetime" />
+          <Property Name="FK_Depo_Out" Type="uniqueidentifier" />
+          <Property Name="DepoOutDateTime" Type="datetime" />
+          <Property Name="Status_PostionValidity" Type="varchar" MaxLength="1" />
+          <Property Name="Status_SateliteCount" Type="int" />
+          <Property Name="Status_GSMSignalStrength" Type="int" />
+          <Property Name="Event_BatteryLow" Type="varchar" MaxLength="5" />
+          <Property Name="Event_BatteryLowAt" Type="datetime" />
+          <Property Name="Event_GSMSignalLost_Recovered" Type="varchar" MaxLength="5" />
+          <Property Name="Event_GSMSignalLostRecoveredAt" Type="datetime" />
+          <Property Name="EngineStatus_ChangedAt" Type="datetime" />
+          <Property Name="Location_ChangedAt" Type="datetime" />
+          <Property Name="Internal_ShowTemperature" Type="bit" />
+          <Property Name="GpsIMEINumber" Type="varchar" MaxLength="50" />
+          <Property Name="GpsDeviceModel" Type="varchar" MaxLength="300" />
+          <Property Name="Speed" Type="float" />
+          <Property Name="Distance" Type="decimal" Precision="13" Scale="5" />
+        </EntityType>
+        <EntityType Name="VehicleTrackingInformation">
+          <Key>
+            <PropertyRef Name="PK_Vehicle" />
+          </Key>
+          <Property Name="PK_Vehicle" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="GpsDeviceModel" Type="varchar" MaxLength="300" />
+          <Property Name="GpsIMEINumber" Type="varchar" MaxLength="50" />
+          <Property Name="GpsMobileNumber" Type="varchar" MaxLength="100" />
+          <Property Name="Internal_ShowTemperature" Type="bit" />
+          <Property Name="FK_AppUser_UpdatedBy" Type="uniqueidentifier" />
+          <Property Name="UpdatedAt" Type="datetime" />
+        </EntityType>
+        <EntityType Name="VehicleTrackingVT1">
+          <Key>
+            <PropertyRef Name="PK_Vehicle" />
+          </Key>
+          <Property Name="PK_Vehicle" Type="uniqueidentifier" Nullable="false" />
+          <Property Name="Latitude" Type="float" Nullable="false" />
+          <Property Name="Longitude" Type="float" Nullable="false" />
+          <Property Name="Altitude" Type="float" Nullable="false" />
+          <Property Name="EngineStatus" Type="varchar" MaxLength="50" Nullable="false" />
+          <Property Name="Course" Type="float" Nullable="false" />
+          <Property Name="Temperature" Type="float" Nullable="false" />
+          <Property Name="Fuel" Type="float" Nullable="false" />
+          <Property Name="EventCode" Type="varchar" MaxLength="5" />
+          <Property Name="RemainingCash" Type="int" />
+          <Property Name="UpdateTime" Type="datetime" Nullable="false" />
+          <Property Name="ServerTime" Type="datetime" Nullable="false" />
+          <Property Name="FK_Depo_In" Type="uniqueidentifier" />
+          <Property Name="DepoInDateTime" Type="datetime" />
+          <Property Name="FK_Depo_Out" Type="uniqueidentifier" />
+          <Property Name="DepoOutDateTime" Type="datetime" />
+          <Property Name="Status_PostionValidity" Type="varchar" MaxLength="1" />
+          <Property Name="Status_SateliteCount" Type="int" />
+          <Property Name="Status_GSMSignalStrength" Type="int" />
+          <Property Name="Event_BatteryLow" Type="varchar" MaxLength="5" />
+          <Property Name="Event_BatteryLowAt" Type="datetime" />
+          <Property Name="Event_GSMSignalLost_Recovered" Type="varchar" MaxLength="5" />
+          <Property Name="Event_GSMSignalLostRecoveredAt" Type="datetime" />
+          <Property Name="EngineStatus_ChangedAt" Type="datetime" />
+          <Property Name="Location_ChangedAt" Type="datetime" />
+          <Property Name="Internal_ShowTemperature" Type="bit" />
+          <Property Name="GpsIMEINumber" Type="varchar" MaxLength="50" />
+          <Property Name="GpsDeviceModel" Type="varchar" MaxLength="300" />
+          <Property Name="Speed" Type="float" />
+          <Property Name="Distance" Type="decimal" Precision="13" Scale="5" />
+        </EntityType>
+        <Association Name="FK_VehicleTracking_VehicleTrackingInformation">
+          <End Role="VehicleTrackingInformation" Type="Self.VehicleTrackingInformation" Multiplicity="1" />
+          <End Role="VehicleTracking" Type="Self.VehicleTracking" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="VehicleTrackingInformation">
+              <PropertyRef Name="PK_Vehicle" />
+            </Principal>
+            <Dependent Role="VehicleTracking">
+              <PropertyRef Name="PK_Vehicle" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Association Name="FK_VehicleTrackingVT1_VehicleTrackingInformation">
+          <End Role="VehicleTrackingInformation" Type="Self.VehicleTrackingInformation" Multiplicity="1" />
+          <End Role="VehicleTrackingVT1" Type="Self.VehicleTrackingVT1" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="VehicleTrackingInformation">
+              <PropertyRef Name="PK_Vehicle" />
+            </Principal>
+            <Dependent Role="VehicleTrackingVT1">
+              <PropertyRef Name="PK_Vehicle" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <Function Name="fn_diagramobjects" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="true" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" ReturnType="int" />
+        <Function Name="sp_alterdiagram" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+          <Parameter Name="version" Type="int" Mode="In" />
+          <Parameter Name="definition" Type="varbinary(max)" Mode="In" />
+        </Function>
+        <Function Name="sp_creatediagram" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+          <Parameter Name="version" Type="int" Mode="In" />
+          <Parameter Name="definition" Type="varbinary(max)" Mode="In" />
+        </Function>
+        <Function Name="sp_dropdiagram" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+        </Function>
+        <Function Name="sp_helpdiagramdefinition" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+        </Function>
+        <Function Name="sp_helpdiagrams" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+        </Function>
+        <Function Name="sp_renamediagram" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo">
+          <Parameter Name="diagramname" Type="nvarchar" Mode="In" />
+          <Parameter Name="owner_id" Type="int" Mode="In" />
+          <Parameter Name="new_diagramname" Type="nvarchar" Mode="In" />
+        </Function>
+        <Function Name="sp_upgraddiagrams" Aggregate="false" BuiltIn="false" NiladicFunction="false" IsComposable="false" ParameterTypeSemantics="AllowImplicitConversion" Schema="dbo" />
+        <EntityContainer Name="ThirdEyEModelStoreContainer">
+          <EntitySet Name="VehicleTracking" EntityType="Self.VehicleTracking" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="VehicleTrackingInformation" EntityType="Self.VehicleTrackingInformation" Schema="dbo" store:Type="Tables" />
+          <EntitySet Name="VehicleTrackingVT1" EntityType="Self.VehicleTrackingVT1" Schema="dbo" store:Type="Tables" />
+          <AssociationSet Name="FK_VehicleTracking_VehicleTrackingInformation" Association="Self.FK_VehicleTracking_VehicleTrackingInformation">
+            <End Role="VehicleTrackingInformation" EntitySet="VehicleTrackingInformation" />
+            <End Role="VehicleTracking" EntitySet="VehicleTracking" />
+          </AssociationSet>
+          <AssociationSet Name="FK_VehicleTrackingVT1_VehicleTrackingInformation" Association="Self.FK_VehicleTrackingVT1_VehicleTrackingInformation">
+            <End Role="VehicleTrackingInformation" EntitySet="VehicleTrackingInformation" />
+            <End Role="VehicleTrackingVT1" EntitySet="VehicleTrackingVT1" />
+          </AssociationSet>
+        </EntityContainer>
+      </Schema></edmx:StorageModels>
+    <!-- CSDL content -->
+    <edmx:ConceptualModels>
+      <Schema Namespace="ThirdEyEModel" Alias="Self" annotation:UseStrongSpatialTypes="false" xmlns:annotation="http://schemas.microsoft.com/ado/2009/02/edm/annotation" xmlns:customannotation="http://schemas.microsoft.com/ado/2013/11/edm/customannotation" xmlns="http://schemas.microsoft.com/ado/2009/11/edm">
+        <EntityContainer Name="VTS_Entities" annotation:LazyLoadingEnabled="true">
+          <FunctionImport Name="CleanDeviceData" ReturnType="Collection(String)" />
+          <FunctionImport Name="DeleteCoreData" />
+          <FunctionImport Name="DeleteDbData" />
+          <FunctionImport Name="GenerateReport_GetVehicleHaltTime">
+            <Parameter Name="FK_Vehicle" Mode="In" Type="String" />
+            <Parameter Name="startingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="endingDate" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="GenerateReport_GetVehicleHaltTime_Helper">
+            <Parameter Name="FK_Vehicle" Mode="In" Type="String" />
+            <Parameter Name="startingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="endingDate" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="GenerateReport_GetVehicleHaltTime_Helper_Helper">
+            <Parameter Name="FK_Vehicle" Mode="In" Type="String" />
+            <Parameter Name="StartingDate" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="MoveDeviceData" ReturnType="Collection(String)" />
+          <FunctionImport Name="PushDeviceData__Insert" ReturnType="Collection(String)">
+            <Parameter Name="PK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="UpdateTime" Mode="In" Type="DateTime" />
+            <Parameter Name="Latitude" Mode="In" Type="String" />
+            <Parameter Name="Longitude" Mode="In" Type="String" />
+            <Parameter Name="Altitude" Mode="In" Type="String" />
+            <Parameter Name="EngineStatus" Mode="In" Type="String" />
+            <Parameter Name="Course" Mode="In" Type="String" />
+            <Parameter Name="Temperature" Mode="In" Type="String" />
+            <Parameter Name="Fuel" Mode="In" Type="String" />
+            <Parameter Name="Speed" Mode="In" Type="String" />
+            <Parameter Name="Distance" Mode="In" Type="String" />
+          </FunctionImport>
+          <FunctionImport Name="PushDeviceData_Insert_Insert" ReturnType="Collection(String)">
+            <Parameter Name="GpsIMEINumber" Mode="In" Type="String" />
+            <Parameter Name="UpdateTime" Mode="In" Type="DateTime" />
+            <Parameter Name="Latitude" Mode="In" Type="String" />
+            <Parameter Name="Longitude" Mode="In" Type="String" />
+            <Parameter Name="Altitude" Mode="In" Type="String" />
+            <Parameter Name="EngineStatus" Mode="In" Type="String" />
+            <Parameter Name="Course" Mode="In" Type="String" />
+            <Parameter Name="Temperature" Mode="In" Type="String" />
+            <Parameter Name="Fuel" Mode="In" Type="String" />
+            <Parameter Name="Speed" Mode="In" Type="String" />
+            <Parameter Name="Distance" Mode="In" Type="String" />
+          </FunctionImport>
+          <FunctionImport Name="PushDeviceData_Update_Insert" ReturnType="Collection(String)">
+            <Parameter Name="PK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="UpdateTime" Mode="In" Type="DateTime" />
+            <Parameter Name="Latitude" Mode="In" Type="String" />
+            <Parameter Name="Longitude" Mode="In" Type="String" />
+            <Parameter Name="Altitude" Mode="In" Type="String" />
+            <Parameter Name="EngineStatus" Mode="In" Type="String" />
+            <Parameter Name="Course" Mode="In" Type="String" />
+            <Parameter Name="Temperature" Mode="In" Type="String" />
+            <Parameter Name="Fuel" Mode="In" Type="String" />
+            <Parameter Name="Speed" Mode="In" Type="String" />
+            <Parameter Name="Distance" Mode="In" Type="String" />
+          </FunctionImport>
+          <FunctionImport Name="PushDeviceData_UpdateTime" ReturnType="Collection(String)">
+            <Parameter Name="PK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="UpdateTime" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetAccessibleEventList_InDateRange" ReturnType="Collection(ThirdEyEModel.Report_GetAccessibleEventList_InDateRange_Result)">
+          <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetTemperatureHistory" ReturnType="Collection(ThirdEyEModel.Report_GetTemperatureHistory_Result)">
+            <Parameter Name="USER_KEY" Mode="In" Type="String" />
+            <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="StartingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="EndingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="IntervalMinute" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleConsolidatedReport" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleConsolidatedReport_Result)">
+            <Parameter Name="USER_KEY" Mode="In" Type="String" />
+            <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="StarTingDate" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleConsolidatedReport_ReadyReport" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleConsolidatedReport_ReadyReport_Result)">
+            <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="StartingDate" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleHaltTime" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleHaltTime_Result)">
+            <Parameter Name="USER_KEY" Mode="In" Type="String" />
+            <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="StartingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="EndingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="MininumMinuteDealy" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleHaltTime_ReadyReport" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleHaltTime_ReadyReport_Result)">
+            <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="StartingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="EndingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="MininumMinuteDealy" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleHistory" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleHistory_Result)">
+            <Parameter Name="USER_KEY" Mode="In" Type="String" />
+            <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="StartingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="EndingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="TimeLapMinute" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleHistoryDetail" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleHistoryDetail_Result)">
+            <Parameter Name="USER_KEY" Mode="In" Type="Guid" />
+            <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="StartingDate" Mode="In" Type="DateTime" />
+            <Parameter Name="EndingDate" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleLastUpdate_withNearMapLocation" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleLastUpdate_withNearMapLocation_Result)">
+          <Parameter Name="PK_User" Mode="In" Type="Guid" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleTracking" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleTracking_Result)">
+          <Parameter Name="PK_User" Mode="In" Type="Guid" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleTracking_Single" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleTracking_Single_Result)">
+          <Parameter Name="PK_Vehicle" Mode="In" Type="Guid" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleTrackingByDepoGroup" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleTrackingByDepoGroup_Result)">
+          <Parameter Name="PK_DepoGroup" Mode="In" Type="Guid" />
+          </FunctionImport>
+          <FunctionImport Name="Report_GetVehicleTrackingForIndividualRequisition" ReturnType="Collection(ThirdEyEModel.Report_GetVehicleTrackingForIndividualRequisition_Result)">
+          <Parameter Name="PK_IndividualRequisition" Mode="In" Type="Guid" />
+          </FunctionImport>
+          <FunctionImport Name="sp_alterdiagram">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+            <Parameter Name="version" Mode="In" Type="Int32" />
+            <Parameter Name="definition" Mode="In" Type="Binary" />
+          </FunctionImport>
+          <FunctionImport Name="sp_creatediagram">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+            <Parameter Name="version" Mode="In" Type="Int32" />
+            <Parameter Name="definition" Mode="In" Type="Binary" />
+          </FunctionImport>
+          <FunctionImport Name="sp_dropdiagram">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="sp_helpdiagramdefinition" ReturnType="Collection(ThirdEyEModel.sp_helpdiagramdefinition_Result)">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="sp_helpdiagrams" ReturnType="Collection(ThirdEyEModel.sp_helpdiagrams_Result)">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+          </FunctionImport>
+          <FunctionImport Name="sp_renamediagram">
+            <Parameter Name="diagramname" Mode="In" Type="String" />
+            <Parameter Name="owner_id" Mode="In" Type="Int32" />
+            <Parameter Name="new_diagramname" Mode="In" Type="String" />
+          </FunctionImport>
+          <FunctionImport Name="sp_upgraddiagrams" />
+          <FunctionImport Name="Tracking_GetLastDeviceData" ReturnType="Collection(ThirdEyEModel.Tracking_GetLastDeviceData_Result)">
+          <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+          </FunctionImport>
+          <FunctionImport Name="Tracking_GetNextDeviceData" ReturnType="Collection(ThirdEyEModel.Tracking_GetNextDeviceData_Result)">
+            <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="PreviousUpdateTime" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <FunctionImport Name="VehicleInDepo_Insert">
+            <Parameter Name="FK_Vehicle" Mode="In" Type="Guid" />
+            <Parameter Name="FK_Depo" Mode="In" Type="Guid" />
+            <Parameter Name="UpdateTime" Mode="In" Type="DateTime" />
+          </FunctionImport>
+          <EntitySet Name="VehicleTrackings" EntityType="ThirdEyEModel.VehicleTracking" />
+          <EntitySet Name="VehicleTrackingInformations" EntityType="ThirdEyEModel.VehicleTrackingInformation" />
+          <AssociationSet Name="FK_VehicleTracking_VehicleTrackingInformation" Association="ThirdEyEModel.FK_VehicleTracking_VehicleTrackingInformation">
+            <End Role="VehicleTrackingInformation" EntitySet="VehicleTrackingInformations" />
+            <End Role="VehicleTracking" EntitySet="VehicleTrackings" />
+          </AssociationSet>
+          <EntitySet Name="VehicleTrackingVT1" EntityType="ThirdEyEModel.VehicleTrackingVT1" />
+          <AssociationSet Name="FK_VehicleTrackingVT1_VehicleTrackingInformation" Association="ThirdEyEModel.FK_VehicleTrackingVT1_VehicleTrackingInformation">
+            <End Role="VehicleTrackingInformation" EntitySet="VehicleTrackingInformations" />
+            <End Role="VehicleTrackingVT1" EntitySet="VehicleTrackingVT1" />
+          </AssociationSet>
+          </EntityContainer>
+        <ComplexType Name="Report_GetAccessibleEventList_InDateRange_Result">
+          <Property Type="String" Name="RegistrationNumber" Nullable="false" MaxLength="100" />
+          <Property Type="Decimal" Name="tax_token" Nullable="true" Precision="38" Scale="2" />
+          <Property Type="Decimal" Name="fitness_paper" Nullable="true" Precision="38" Scale="2" />
+          <Property Type="Decimal" Name="route_permit" Nullable="true" Precision="38" Scale="2" />
+        </ComplexType>
+        <ComplexType Name="Report_GetTemperatureHistory_Result">
+          <Property Type="DateTime" Name="UpdateTime" Nullable="true" Precision="23" />
+          <Property Type="Double" Name="Temperature" Nullable="true" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleConsolidatedReport_Result">
+          <Property Type="String" Name="C_rowType" Nullable="false" MaxLength="4" />
+          <Property Type="String" Name="ThisDate" Nullable="true" MaxLength="11" />
+          <Property Type="String" Name="RegistrationNumber" Nullable="true" MaxLength="50" />
+          <Property Type="String" Name="MobileNumber" Nullable="true" MaxLength="50" />
+          <Property Type="String" Name="LastUpdate" Nullable="true" MaxLength="50" />
+          <Property Type="String" Name="LastLocaitonNearName" Nullable="true" MaxLength="300" />
+          <Property Type="String" Name="LastLocaitonNearDistance" Nullable="true" MaxLength="300" />
+          <Property Type="Int64" Name="TotalHaltTime" Nullable="true" />
+          <Property Type="Int64" Name="HaltCount" Nullable="true" />
+          <Property Type="Double" Name="AverageHaltTime" Nullable="true" />
+          <Property Type="Int32" Name="MaximumHaltTime" Nullable="true" />
+          <Property Type="Double" Name="TotalRunTime" Nullable="true" />
+          <Property Type="Double" Name="TotalDistance" Nullable="true" />
+          <Property Type="Double" Name="MaximumSpeed" Nullable="true" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleConsolidatedReport_ReadyReport_Result">
+          <Property Type="Int64" Name="PK" Nullable="false" />
+          <Property Type="Guid" Name="FK_Vehicle" Nullable="true" />
+          <Property Type="String" Name="C_rowType" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="PK_RowData_Start" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="PK_RowData_End" Nullable="true" MaxLength="100" />
+          <Property Type="DateTime" Name="StartTime" Nullable="true" Precision="23" />
+          <Property Type="DateTime" Name="EndTime" Nullable="true" Precision="23" />
+          <Property Type="Double" Name="Latitude" Nullable="true" />
+          <Property Type="Double" Name="Longitude" Nullable="true" />
+          <Property Type="Int64" Name="HaltTime" Nullable="true" />
+          <Property Type="String" Name="EngineStatus" Nullable="true" MaxLength="50" />
+          <Property Type="Decimal" Name="TotalDistance" Nullable="true" Precision="13" Scale="5" />
+          <Property Type="Double" Name="MaxSpeed" Nullable="true" />
+          <Property Type="DateTime" Name="LastUpdated" Nullable="true" Precision="23" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="Double" Name="NearestMapLocationDistance" Nullable="true" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleHaltTime_Result">
+          <Property Type="Int64" Name="PK" Nullable="false" />
+          <Property Type="String" Name="USER_KEY" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="C_rowType" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="PK_RowData_Start" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="PK_RowData_End" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="VehicleRegistrationNumber" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="StartTime" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="EndTime" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="Latitude" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="Longitude" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="HaltTime" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="NearestMapLocationDistance" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="EngineStatus" Nullable="true" MaxLength="50" />
+          <Property Type="String" Name="Speed" Nullable="true" MaxLength="50" />
+          <Property Type="String" Name="C_DateString" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="C_NumberOfHalt" Nullable="true" MaxLength="100" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleHaltTime_ReadyReport_Result">
+          <Property Type="String" Name="VehicleRegistrationNumber" Nullable="true" MaxLength="50" />
+          <Property Type="Int64" Name="PK" Nullable="false" />
+          <Property Type="Guid" Name="FK_Vehicle" Nullable="true" />
+          <Property Type="String" Name="C_rowType" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="PK_RowData_Start" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="PK_RowData_End" Nullable="true" MaxLength="100" />
+          <Property Type="DateTime" Name="StartTime" Nullable="true" Precision="23" />
+          <Property Type="DateTime" Name="EndTime" Nullable="true" Precision="23" />
+          <Property Type="Double" Name="Latitude" Nullable="true" />
+          <Property Type="Double" Name="Longitude" Nullable="true" />
+          <Property Type="Int64" Name="HaltTime" Nullable="true" />
+          <Property Type="String" Name="EngineStatus" Nullable="true" MaxLength="50" />
+          <Property Type="Decimal" Name="TotalDistance" Nullable="true" Precision="13" Scale="5" />
+          <Property Type="Double" Name="MaxSpeed" Nullable="true" />
+          <Property Type="DateTime" Name="LastUpdated" Nullable="true" Precision="23" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="Double" Name="NearestMapLocationDistance" Nullable="true" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleHistory_Result">
+          <Property Type="Int64" Name="PK" Nullable="false" />
+          <Property Type="String" Name="USER_KEY" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="UpdateTime" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="Latitude" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="Longitude" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="EngineStatus" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="Speed" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="NearestMapLocationDistance" Nullable="true" MaxLength="100" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleHistoryDetail_Result">
+          <Property Type="Int64" Name="PK" Nullable="false" />
+          <Property Type="String" Name="USER_KEY" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="FK_Vehicle" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="UpdateTime" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="Latitude" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="Longitude" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="EngineStatus" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="Speed" Nullable="true" MaxLength="100" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleLastUpdate_withNearMapLocation_Result">
+          <Property Type="Guid" Name="PK_Vehicle" Nullable="false" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="Double" Name="NearestMapLocationDistance" Nullable="true" />
+          <Property Type="Double" Name="Latitude" Nullable="false" />
+          <Property Type="Double" Name="Longitude" Nullable="false" />
+          <Property Type="Double" Name="Altitude" Nullable="false" />
+          <Property Type="String" Name="EngineStatus" Nullable="false" MaxLength="50" />
+          <Property Type="Double" Name="Course" Nullable="false" />
+          <Property Type="Double" Name="Temperature" Nullable="false" />
+          <Property Type="Double" Name="Fuel" Nullable="false" />
+          <Property Type="Double" Name="Speed" Nullable="false" />
+          <Property Type="Decimal" Name="Distance" Nullable="false" Precision="13" Scale="5" />
+          <Property Type="DateTime" Name="UpdateTime" Nullable="false" Precision="23" />
+          <Property Type="DateTime" Name="ServerTime" Nullable="false" Precision="23" />
+          <Property Type="Int32" Name="UpdatedAgo_Minute" Nullable="true" />
+          <Property Type="String" Name="RegistrationNumber" Nullable="false" MaxLength="100" />
+          <Property Type="Guid" Name="FK_Company" Nullable="true" />
+          <Property Type="Guid" Name="FK_Depo" Nullable="false" />
+          <Property Type="String" Name="MHT_DHT_DriverContactNumber" Nullable="true" MaxLength="300" />
+          <Property Type="String" Name="VehicleType" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="GpsMobileNumber" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="GpsIMEINumber" Nullable="true" MaxLength="50" />
+          <Property Type="String" Name="UserCompany_Name" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="Depo_Name" Nullable="false" MaxLength="100" />
+          <Property Type="String" Name="BrandModel" Nullable="true" MaxLength="201" />
+          <Property Type="Int32" Name="Status" Nullable="false" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleTracking_Result">
+          <Property Type="Guid" Name="PK_Vehicle" Nullable="false" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="Double" Name="NearestMapLocationDistance" Nullable="true" />
+          <Property Type="Double" Name="Latitude" Nullable="false" />
+          <Property Type="Double" Name="Longitude" Nullable="false" />
+          <Property Type="Double" Name="Altitude" Nullable="false" />
+          <Property Type="String" Name="EngineStatus" Nullable="false" MaxLength="50" />
+          <Property Type="Double" Name="Course" Nullable="false" />
+          <Property Type="Double" Name="Temperature" Nullable="false" />
+          <Property Type="Double" Name="Fuel" Nullable="false" />
+          <Property Type="Double" Name="Speed" Nullable="false" />
+          <Property Type="Decimal" Name="Distance" Nullable="false" Precision="13" Scale="5" />
+          <Property Type="String" Name="UpdateTime" Nullable="true" MaxLength="4000" />
+          <Property Type="String" Name="ServerTime" Nullable="true" MaxLength="4000" />
+          <Property Type="String" Name="RegistrationNumber" Nullable="false" MaxLength="100" />
+          <Property Type="Guid" Name="FK_Company" Nullable="true" />
+          <Property Type="Guid" Name="FK_Depo" Nullable="false" />
+          <Property Type="String" Name="Internal_VehicleContactNumber" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="VehicleType" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="GpsMobileNumber" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="GpsIMEINumber" Nullable="true" MaxLength="50" />
+          <Property Type="Boolean" Name="Internal_ShowTemperature" Nullable="true" />
+          <Property Type="String" Name="UserCompany_Name" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="DepoName" Nullable="false" MaxLength="100" />
+          <Property Type="Int32" Name="Status" Nullable="false" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleTracking_Single_Result">
+          <Property Type="Guid" Name="PK_Vehicle" Nullable="true" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="Double" Name="NearestMapLocationDistance" Nullable="true" />
+          <Property Type="Double" Name="Latitude" Nullable="false" />
+          <Property Type="Double" Name="Longitude" Nullable="false" />
+          <Property Type="Double" Name="Altitude" Nullable="false" />
+          <Property Type="String" Name="EngineStatus" Nullable="false" MaxLength="50" />
+          <Property Type="Double" Name="Course" Nullable="false" />
+          <Property Type="Double" Name="Temperature" Nullable="false" />
+          <Property Type="Double" Name="Fuel" Nullable="false" />
+          <Property Type="Double" Name="Speed" Nullable="false" />
+          <Property Type="Decimal" Name="Distance" Nullable="false" Precision="13" Scale="5" />
+          <Property Type="String" Name="UpdateTime" Nullable="true" MaxLength="4000" />
+          <Property Type="String" Name="ServerTime" Nullable="true" MaxLength="4000" />
+          <Property Type="Int32" Name="Status" Nullable="false" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleTrackingByDepoGroup_Result">
+          <Property Type="Guid" Name="PK_Vehicle" Nullable="false" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="Double" Name="NearestMapLocationDistance" Nullable="true" />
+          <Property Type="Double" Name="Latitude" Nullable="false" />
+          <Property Type="Double" Name="Longitude" Nullable="false" />
+          <Property Type="Double" Name="Altitude" Nullable="false" />
+          <Property Type="String" Name="EngineStatus" Nullable="false" MaxLength="50" />
+          <Property Type="Double" Name="Course" Nullable="false" />
+          <Property Type="Double" Name="Temperature" Nullable="false" />
+          <Property Type="Double" Name="Fuel" Nullable="false" />
+          <Property Type="Double" Name="Speed" Nullable="false" />
+          <Property Type="Decimal" Name="Distance" Nullable="false" Precision="13" Scale="5" />
+          <Property Type="String" Name="UpdateTime" Nullable="true" MaxLength="4000" />
+          <Property Type="String" Name="ServerTime" Nullable="true" MaxLength="4000" />
+          <Property Type="String" Name="RegistrationNumber" Nullable="false" MaxLength="100" />
+          <Property Type="Guid" Name="FK_Company" Nullable="true" />
+          <Property Type="Guid" Name="FK_Depo" Nullable="false" />
+          <Property Type="String" Name="Internal_VehicleContactNumber" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="VehicleType" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="GpsMobileNumber" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="GpsIMEINumber" Nullable="true" MaxLength="50" />
+          <Property Type="Boolean" Name="Internal_ShowTemperature" Nullable="true" />
+          <Property Type="String" Name="UserCompany_Name" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="DepoName" Nullable="true" MaxLength="100" />
+          <Property Type="Int32" Name="Status" Nullable="false" />
+        </ComplexType>
+        <ComplexType Name="Report_GetVehicleTrackingForIndividualRequisition_Result">
+          <Property Type="Guid" Name="PK_Vehicle" Nullable="false" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="Double" Name="NearestMapLocationDistance" Nullable="true" />
+          <Property Type="Double" Name="Latitude" Nullable="true" />
+          <Property Type="Double" Name="Longitude" Nullable="true" />
+          <Property Type="Double" Name="Altitude" Nullable="true" />
+          <Property Type="String" Name="EngineStatus" Nullable="true" MaxLength="50" />
+          <Property Type="Double" Name="Course" Nullable="true" />
+          <Property Type="Double" Name="Temperature" Nullable="true" />
+          <Property Type="Double" Name="Fuel" Nullable="true" />
+          <Property Type="Double" Name="Speed" Nullable="true" />
+          <Property Type="Decimal" Name="Distance" Nullable="true" Precision="13" Scale="5" />
+          <Property Type="String" Name="UpdateTime" Nullable="true" MaxLength="4000" />
+          <Property Type="String" Name="ServerTime" Nullable="true" MaxLength="4000" />
+          <Property Type="String" Name="RegistrationNumber" Nullable="false" MaxLength="100" />
+          <Property Type="Guid" Name="FK_Company" Nullable="true" />
+          <Property Type="Guid" Name="FK_Depo" Nullable="false" />
+          <Property Type="String" Name="Internal_VehicleContactNumber" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="VehicleType" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="GpsMobileNumber" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="GpsIMEINumber" Nullable="true" MaxLength="50" />
+          <Property Type="Boolean" Name="Internal_ShowTemperature" Nullable="true" />
+          <Property Type="String" Name="UserCompany_Name" Nullable="true" MaxLength="100" />
+          <Property Type="String" Name="DepoName" Nullable="false" MaxLength="100" />
+          <Property Type="Int32" Name="Status" Nullable="false" />
+        </ComplexType>
+        <ComplexType Name="sp_helpdiagramdefinition_Result">
+          <Property Type="Int32" Name="version" Nullable="true" />
+          <Property Type="Binary" Name="definition" Nullable="true" />
+        </ComplexType>
+        <ComplexType Name="sp_helpdiagrams_Result">
+          <Property Type="String" Name="Database" Nullable="true" MaxLength="128" />
+          <Property Type="String" Name="Name" Nullable="false" MaxLength="128" />
+          <Property Type="Int32" Name="ID" Nullable="false" />
+          <Property Type="String" Name="Owner" Nullable="true" MaxLength="128" />
+          <Property Type="Int32" Name="OwnerID" Nullable="false" />
+        </ComplexType>
+        <ComplexType Name="Tracking_GetLastDeviceData_Result">
+          <Property Type="Guid" Name="PK_Vehicle" Nullable="false" />
+          <Property Type="Double" Name="Latitude" Nullable="false" />
+          <Property Type="Double" Name="Longitude" Nullable="false" />
+          <Property Type="Double" Name="Altitude" Nullable="false" />
+          <Property Type="String" Name="EngineStatus" Nullable="false" MaxLength="50" />
+          <Property Type="Double" Name="Course" Nullable="false" />
+          <Property Type="Double" Name="Temperature" Nullable="false" />
+          <Property Type="Double" Name="Fuel" Nullable="false" />
+          <Property Type="Double" Name="Speed" Nullable="false" />
+          <Property Type="Decimal" Name="Distance" Nullable="false" Precision="13" Scale="5" />
+          <Property Type="DateTime" Name="UpdateTime" Nullable="false" Precision="23" />
+          <Property Type="DateTime" Name="ServerTime" Nullable="false" Precision="23" />
+          <Property Type="Guid" Name="FK_Depo_In" Nullable="true" />
+          <Property Type="DateTime" Name="DepoInDateTime" Nullable="true" Precision="23" />
+          <Property Type="Guid" Name="FK_Depo_Out" Nullable="true" />
+          <Property Type="DateTime" Name="DepoOutDateTime" Nullable="true" Precision="23" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="Double" Name="NearestMapLocationDistance" Nullable="true" />
+        </ComplexType>
+        <ComplexType Name="Tracking_GetNextDeviceData_Result">
+          <Property Type="Int64" Name="PK_RowData" Nullable="false" />
+          <Property Type="Guid" Name="FK_Vehicle" Nullable="false" />
+          <Property Type="Double" Name="Latitude" Nullable="true" />
+          <Property Type="Double" Name="Longitude" Nullable="true" />
+          <Property Type="Double" Name="Altitude" Nullable="true" />
+          <Property Type="String" Name="EngineStatus" Nullable="true" MaxLength="50" />
+          <Property Type="Double" Name="Course" Nullable="true" />
+          <Property Type="Double" Name="Temperature" Nullable="true" />
+          <Property Type="Double" Name="Fuel" Nullable="true" />
+          <Property Type="Double" Name="Speed" Nullable="true" />
+          <Property Type="Decimal" Name="Distance" Nullable="true" Precision="13" Scale="5" />
+          <Property Type="DateTime" Name="UpdateTime" Nullable="true" Precision="23" />
+          <Property Type="DateTime" Name="ServerTime" Nullable="true" Precision="23" />
+          <Property Type="String" Name="NearestMapLocation" Nullable="true" MaxLength="100" />
+          <Property Type="Double" Name="NearestMapLocationDistance" Nullable="true" />
+        </ComplexType>
+        <EntityType Name="VehicleTracking">
+          <Key>
+            <PropertyRef Name="PK_Vehicle" />
+          </Key>
+          <Property Name="PK_Vehicle" Type="Guid" Nullable="false" />
+          <Property Name="Latitude" Type="Double" Nullable="false" />
+          <Property Name="Longitude" Type="Double" Nullable="false" />
+          <Property Name="Altitude" Type="Double" Nullable="false" />
+          <Property Name="EngineStatus" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="Course" Type="Double" Nullable="false" />
+          <Property Name="Temperature" Type="Double" Nullable="false" />
+          <Property Name="Fuel" Type="Double" Nullable="false" />
+          <Property Name="Speed" Type="Double" />
+          <Property Name="Distance" Type="Decimal" Precision="13" Scale="5" />
+          <Property Name="EventCode" Type="String" MaxLength="5" FixedLength="false" Unicode="false" />
+          <Property Name="RemainingCash" Type="Int32" />
+          <Property Name="UpdateTime" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="ServerTime" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="FK_Depo_In" Type="Guid" />
+          <Property Name="DepoInDateTime" Type="DateTime" Precision="3" />
+          <Property Name="FK_Depo_Out" Type="Guid" />
+          <Property Name="DepoOutDateTime" Type="DateTime" Precision="3" />
+          <Property Name="Status_PostionValidity" Type="String" MaxLength="1" FixedLength="false" Unicode="false" />
+          <Property Name="Status_SateliteCount" Type="Int32" />
+          <Property Name="Status_GSMSignalStrength" Type="Int32" />
+          <Property Name="Event_BatteryLow" Type="String" MaxLength="5" FixedLength="false" Unicode="false" />
+          <Property Name="Event_BatteryLowAt" Type="DateTime" Precision="3" />
+          <Property Name="Event_GSMSignalLost_Recovered" Type="String" MaxLength="5" FixedLength="false" Unicode="false" />
+          <Property Name="Event_GSMSignalLostRecoveredAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="VehicleTrackingInformation" Relationship="ThirdEyEModel.FK_VehicleTracking_VehicleTrackingInformation" FromRole="VehicleTracking" ToRole="VehicleTrackingInformation" />
+          <Property Name="EngineStatus_ChangedAt" Type="DateTime" Precision="3" />
+          <Property Name="Location_ChangedAt" Type="DateTime" Precision="3" />
+          <Property Name="Internal_ShowTemperature" Type="Boolean" />
+          <Property Name="GpsIMEINumber" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="GpsDeviceModel" Type="String" MaxLength="300" FixedLength="false" Unicode="false" />
+        </EntityType>
+        <EntityType Name="VehicleTrackingInformation">
+          <Key>
+            <PropertyRef Name="PK_Vehicle" />
+          </Key>
+          <Property Name="PK_Vehicle" Type="Guid" Nullable="false" />
+          <Property Name="GpsDeviceModel" Type="String" MaxLength="300" FixedLength="false" Unicode="false" />
+          <Property Name="GpsIMEINumber" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="GpsMobileNumber" Type="String" MaxLength="100" FixedLength="false" Unicode="false" />
+          <Property Name="Internal_ShowTemperature" Type="Boolean" />
+          <NavigationProperty Name="VehicleTracking" Relationship="ThirdEyEModel.FK_VehicleTracking_VehicleTrackingInformation" FromRole="VehicleTrackingInformation" ToRole="VehicleTracking" />
+          <Property Name="FK_AppUser_UpdatedBy" Type="Guid" />
+          <Property Name="UpdatedAt" Type="DateTime" Precision="3" />
+          <NavigationProperty Name="VehicleTrackingVT1" Relationship="ThirdEyEModel.FK_VehicleTrackingVT1_VehicleTrackingInformation" FromRole="VehicleTrackingInformation" ToRole="VehicleTrackingVT1" />
+        </EntityType>
+        <Association Name="FK_VehicleTracking_VehicleTrackingInformation">
+          <End Type="ThirdEyEModel.VehicleTrackingInformation" Role="VehicleTrackingInformation" Multiplicity="1" />
+          <End Type="ThirdEyEModel.VehicleTracking" Role="VehicleTracking" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="VehicleTrackingInformation">
+              <PropertyRef Name="PK_Vehicle" />
+            </Principal>
+            <Dependent Role="VehicleTracking">
+              <PropertyRef Name="PK_Vehicle" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        <EntityType Name="VehicleTrackingVT1">
+          <Key>
+            <PropertyRef Name="PK_Vehicle" />
+          </Key>
+          <Property Name="PK_Vehicle" Type="Guid" Nullable="false" />
+          <Property Name="Latitude" Type="Double" Nullable="false" />
+          <Property Name="Longitude" Type="Double" Nullable="false" />
+          <Property Name="Altitude" Type="Double" Nullable="false" />
+          <Property Name="EngineStatus" Type="String" Nullable="false" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="Course" Type="Double" Nullable="false" />
+          <Property Name="Temperature" Type="Double" Nullable="false" />
+          <Property Name="Fuel" Type="Double" Nullable="false" />
+          <Property Name="EventCode" Type="String" MaxLength="5" FixedLength="false" Unicode="false" />
+          <Property Name="RemainingCash" Type="Int32" />
+          <Property Name="UpdateTime" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="ServerTime" Type="DateTime" Nullable="false" Precision="3" />
+          <Property Name="FK_Depo_In" Type="Guid" />
+          <Property Name="DepoInDateTime" Type="DateTime" Precision="3" />
+          <Property Name="FK_Depo_Out" Type="Guid" />
+          <Property Name="DepoOutDateTime" Type="DateTime" Precision="3" />
+          <Property Name="Status_PostionValidity" Type="String" MaxLength="1" FixedLength="false" Unicode="false" />
+          <Property Name="Status_SateliteCount" Type="Int32" />
+          <Property Name="Status_GSMSignalStrength" Type="Int32" />
+          <Property Name="Event_BatteryLow" Type="String" MaxLength="5" FixedLength="false" Unicode="false" />
+          <Property Name="Event_BatteryLowAt" Type="DateTime" Precision="3" />
+          <Property Name="Event_GSMSignalLost_Recovered" Type="String" MaxLength="5" FixedLength="false" Unicode="false" />
+          <Property Name="Event_GSMSignalLostRecoveredAt" Type="DateTime" Precision="3" />
+          <Property Name="EngineStatus_ChangedAt" Type="DateTime" Precision="3" />
+          <Property Name="Location_ChangedAt" Type="DateTime" Precision="3" />
+          <Property Name="Internal_ShowTemperature" Type="Boolean" />
+          <Property Name="GpsIMEINumber" Type="String" MaxLength="50" FixedLength="false" Unicode="false" />
+          <Property Name="GpsDeviceModel" Type="String" MaxLength="300" FixedLength="false" Unicode="false" />
+          <Property Name="Speed" Type="Double" />
+          <Property Name="Distance" Type="Decimal" Precision="13" Scale="5" />
+          <NavigationProperty Name="VehicleTrackingInformation" Relationship="ThirdEyEModel.FK_VehicleTrackingVT1_VehicleTrackingInformation" FromRole="VehicleTrackingVT1" ToRole="VehicleTrackingInformation" />
+        </EntityType>
+        <Association Name="FK_VehicleTrackingVT1_VehicleTrackingInformation">
+          <End Type="ThirdEyEModel.VehicleTrackingInformation" Role="VehicleTrackingInformation" Multiplicity="1" />
+          <End Type="ThirdEyEModel.VehicleTrackingVT1" Role="VehicleTrackingVT1" Multiplicity="0..1" />
+          <ReferentialConstraint>
+            <Principal Role="VehicleTrackingInformation">
+              <PropertyRef Name="PK_Vehicle" />
+            </Principal>
+            <Dependent Role="VehicleTrackingVT1">
+              <PropertyRef Name="PK_Vehicle" />
+            </Dependent>
+          </ReferentialConstraint>
+        </Association>
+        </Schema>
+    </edmx:ConceptualModels>
+    <!-- C-S mapping content -->
+    <edmx:Mappings>
+      <Mapping Space="C-S" xmlns="http://schemas.microsoft.com/ado/2009/11/mapping/cs">
+        <EntityContainerMapping StorageEntityContainer="ThirdEyEModelStoreContainer" CdmEntityContainer="VTS_Entities">
+          <FunctionImportMapping FunctionImportName="sp_alterdiagram" FunctionName="ThirdEyEModel.Store.sp_alterdiagram" />
+          <FunctionImportMapping FunctionImportName="sp_creatediagram" FunctionName="ThirdEyEModel.Store.sp_creatediagram" />
+          <FunctionImportMapping FunctionImportName="sp_dropdiagram" FunctionName="ThirdEyEModel.Store.sp_dropdiagram" />
+          <FunctionImportMapping FunctionImportName="sp_helpdiagramdefinition" FunctionName="ThirdEyEModel.Store.sp_helpdiagramdefinition">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="ThirdEyEModel.sp_helpdiagramdefinition_Result">
+                <ScalarProperty Name="version" ColumnName="version" />
+                <ScalarProperty Name="definition" ColumnName="definition" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_helpdiagrams" FunctionName="ThirdEyEModel.Store.sp_helpdiagrams">
+            <ResultMapping>
+              <ComplexTypeMapping TypeName="ThirdEyEModel.sp_helpdiagrams_Result">
+                <ScalarProperty Name="Database" ColumnName="Database" />
+                <ScalarProperty Name="Name" ColumnName="Name" />
+                <ScalarProperty Name="ID" ColumnName="ID" />
+                <ScalarProperty Name="Owner" ColumnName="Owner" />
+                <ScalarProperty Name="OwnerID" ColumnName="OwnerID" />
+              </ComplexTypeMapping>
+            </ResultMapping>
+          </FunctionImportMapping>
+          <FunctionImportMapping FunctionImportName="sp_renamediagram" FunctionName="ThirdEyEModel.Store.sp_renamediagram" />
+          <FunctionImportMapping FunctionImportName="sp_upgraddiagrams" FunctionName="ThirdEyEModel.Store.sp_upgraddiagrams" />
+          <EntitySetMapping Name="VehicleTrackings">
+            <EntityTypeMapping TypeName="ThirdEyEModel.VehicleTracking">
+              <MappingFragment StoreEntitySet="VehicleTracking">
+                <ScalarProperty Name="GpsDeviceModel" ColumnName="GpsDeviceModel" />
+                <ScalarProperty Name="GpsIMEINumber" ColumnName="GpsIMEINumber" />
+                <ScalarProperty Name="Internal_ShowTemperature" ColumnName="Internal_ShowTemperature" />
+                <ScalarProperty Name="Location_ChangedAt" ColumnName="Location_ChangedAt" />
+                <ScalarProperty Name="EngineStatus_ChangedAt" ColumnName="EngineStatus_ChangedAt" />
+                <ScalarProperty Name="Event_GSMSignalLostRecoveredAt" ColumnName="Event_GSMSignalLostRecoveredAt" />
+                <ScalarProperty Name="Event_GSMSignalLost_Recovered" ColumnName="Event_GSMSignalLost_Recovered" />
+                <ScalarProperty Name="Event_BatteryLowAt" ColumnName="Event_BatteryLowAt" />
+                <ScalarProperty Name="Event_BatteryLow" ColumnName="Event_BatteryLow" />
+                <ScalarProperty Name="Status_GSMSignalStrength" ColumnName="Status_GSMSignalStrength" />
+                <ScalarProperty Name="Status_SateliteCount" ColumnName="Status_SateliteCount" />
+                <ScalarProperty Name="Status_PostionValidity" ColumnName="Status_PostionValidity" />
+                <ScalarProperty Name="DepoOutDateTime" ColumnName="DepoOutDateTime" />
+                <ScalarProperty Name="FK_Depo_Out" ColumnName="FK_Depo_Out" />
+                <ScalarProperty Name="DepoInDateTime" ColumnName="DepoInDateTime" />
+                <ScalarProperty Name="FK_Depo_In" ColumnName="FK_Depo_In" />
+                <ScalarProperty Name="ServerTime" ColumnName="ServerTime" />
+                <ScalarProperty Name="UpdateTime" ColumnName="UpdateTime" />
+                <ScalarProperty Name="RemainingCash" ColumnName="RemainingCash" />
+                <ScalarProperty Name="EventCode" ColumnName="EventCode" />
+                <ScalarProperty Name="Distance" ColumnName="Distance" />
+                <ScalarProperty Name="Speed" ColumnName="Speed" />
+                <ScalarProperty Name="Fuel" ColumnName="Fuel" />
+                <ScalarProperty Name="Temperature" ColumnName="Temperature" />
+                <ScalarProperty Name="Course" ColumnName="Course" />
+                <ScalarProperty Name="EngineStatus" ColumnName="EngineStatus" />
+                <ScalarProperty Name="Altitude" ColumnName="Altitude" />
+                <ScalarProperty Name="Longitude" ColumnName="Longitude" />
+                <ScalarProperty Name="Latitude" ColumnName="Latitude" />
+                <ScalarProperty Name="PK_Vehicle" ColumnName="PK_Vehicle" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="VehicleTrackingInformations">
+            <EntityTypeMapping TypeName="ThirdEyEModel.VehicleTrackingInformation">
+              <MappingFragment StoreEntitySet="VehicleTrackingInformation">
+                <ScalarProperty Name="UpdatedAt" ColumnName="UpdatedAt" />
+                <ScalarProperty Name="FK_AppUser_UpdatedBy" ColumnName="FK_AppUser_UpdatedBy" />
+                <ScalarProperty Name="Internal_ShowTemperature" ColumnName="Internal_ShowTemperature" />
+                <ScalarProperty Name="GpsMobileNumber" ColumnName="GpsMobileNumber" />
+                <ScalarProperty Name="GpsIMEINumber" ColumnName="GpsIMEINumber" />
+                <ScalarProperty Name="GpsDeviceModel" ColumnName="GpsDeviceModel" />
+                <ScalarProperty Name="PK_Vehicle" ColumnName="PK_Vehicle" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          <EntitySetMapping Name="VehicleTrackingVT1">
+            <EntityTypeMapping TypeName="ThirdEyEModel.VehicleTrackingVT1">
+              <MappingFragment StoreEntitySet="VehicleTrackingVT1">
+                <ScalarProperty Name="Distance" ColumnName="Distance" />
+                <ScalarProperty Name="Speed" ColumnName="Speed" />
+                <ScalarProperty Name="GpsDeviceModel" ColumnName="GpsDeviceModel" />
+                <ScalarProperty Name="GpsIMEINumber" ColumnName="GpsIMEINumber" />
+                <ScalarProperty Name="Internal_ShowTemperature" ColumnName="Internal_ShowTemperature" />
+                <ScalarProperty Name="Location_ChangedAt" ColumnName="Location_ChangedAt" />
+                <ScalarProperty Name="EngineStatus_ChangedAt" ColumnName="EngineStatus_ChangedAt" />
+                <ScalarProperty Name="Event_GSMSignalLostRecoveredAt" ColumnName="Event_GSMSignalLostRecoveredAt" />
+                <ScalarProperty Name="Event_GSMSignalLost_Recovered" ColumnName="Event_GSMSignalLost_Recovered" />
+                <ScalarProperty Name="Event_BatteryLowAt" ColumnName="Event_BatteryLowAt" />
+                <ScalarProperty Name="Event_BatteryLow" ColumnName="Event_BatteryLow" />
+                <ScalarProperty Name="Status_GSMSignalStrength" ColumnName="Status_GSMSignalStrength" />
+                <ScalarProperty Name="Status_SateliteCount" ColumnName="Status_SateliteCount" />
+                <ScalarProperty Name="Status_PostionValidity" ColumnName="Status_PostionValidity" />
+                <ScalarProperty Name="DepoOutDateTime" ColumnName="DepoOutDateTime" />
+                <ScalarProperty Name="FK_Depo_Out" ColumnName="FK_Depo_Out" />
+                <ScalarProperty Name="DepoInDateTime" ColumnName="DepoInDateTime" />
+                <ScalarProperty Name="FK_Depo_In" ColumnName="FK_Depo_In" />
+                <ScalarProperty Name="ServerTime" ColumnName="ServerTime" />
+                <ScalarProperty Name="UpdateTime" ColumnName="UpdateTime" />
+                <ScalarProperty Name="RemainingCash" ColumnName="RemainingCash" />
+                <ScalarProperty Name="EventCode" ColumnName="EventCode" />
+                <ScalarProperty Name="Fuel" ColumnName="Fuel" />
+                <ScalarProperty Name="Temperature" ColumnName="Temperature" />
+                <ScalarProperty Name="Course" ColumnName="Course" />
+                <ScalarProperty Name="EngineStatus" ColumnName="EngineStatus" />
+                <ScalarProperty Name="Altitude" ColumnName="Altitude" />
+                <ScalarProperty Name="Longitude" ColumnName="Longitude" />
+                <ScalarProperty Name="Latitude" ColumnName="Latitude" />
+                <ScalarProperty Name="PK_Vehicle" ColumnName="PK_Vehicle" />
+              </MappingFragment>
+            </EntityTypeMapping>
+          </EntitySetMapping>
+          </EntityContainerMapping>
+      </Mapping>
+    </edmx:Mappings>
+  </edmx:Runtime>
+  <!-- EF Designer content (DO NOT EDIT MANUALLY BELOW HERE) -->
+  <Designer xmlns="http://schemas.microsoft.com/ado/2009/11/edmx">
+    <Connection>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="MetadataArtifactProcessing" Value="EmbedInOutputAssembly" />
+      </DesignerInfoPropertySet>
+    </Connection>
+    <Options>
+      <DesignerInfoPropertySet>
+        <DesignerProperty Name="ValidateOnBuild" Value="true" />
+        <DesignerProperty Name="EnablePluralization" Value="true" />
+        <DesignerProperty Name="IncludeForeignKeysInModel" Value="true" />
+        <DesignerProperty Name="UseLegacyProvider" Value="false" />
+        <DesignerProperty Name="CodeGenerationStrategy" Value="None" />
+      </DesignerInfoPropertySet>
+    </Options>
+    <!-- Diagram content (shape and connector positions) -->
+    <Diagrams></Diagrams>
+  </Designer>
+</edmx:Edmx>
