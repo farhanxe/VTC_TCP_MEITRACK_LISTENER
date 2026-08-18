@@ -389,10 +389,11 @@ namespace FX_TCP
                 d.RemainingCash            = 0;
 
                 AppendLog(string.Format(
-                    "[RX] IMEI:{0} Ev:{1} Lat:{2:F4} Lon:{3:F4} Spd:{4} Eng:{5} GPS:{6} Sats:{7} Temp:{8:F1} Q:{9}",
+                    "[RX] IMEI:{0} Ev:{1} Lat:{2:F4} Lon:{3:F4} Spd:{4} Eng:{5} GPS:{6} Sats:{7} Temp:{8:F1} Analog:{9} Q:{10}",
                     d.GpsIMEINumber, d.EventCode, d.Latitude, d.Longitude,
                     d.Speed, d.EngineStatus, d.Status_PostionValidity,
-                    d.Status_SateliteCount, d.Temperature, _writeQueue.Count), LogLevel.Packet);
+                    d.Status_SateliteCount, d.Temperature,
+                    SafeField(f, 18, "N/A"), _writeQueue.Count), LogLevel.Packet);
 
                 // ── Deduplication ─────────────────────────────────────────────
                 // Skip if same position/temp/engine/event within _dedupSeconds (10s)

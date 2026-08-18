@@ -174,29 +174,41 @@ namespace FX_TCP
         public string PushDeviceData_PORT_6063(DB_Helper_Data new_data)
         {
             // ── Timestamp sanity fix ──────────────────────────────────────────
-            // Device RTC can have wrong DATE but correct TIME (common firmware bug).
-            // Strategy: keep the device's time-of-day, replace the date with today.
-            // This preserves route timing accuracy while fixing the calendar drift.
-            //
-            // Triggers when device date is more than 2 days off from server date.
+            // If device time is in the FUTURE (> server time), clamp it to server time.
+            // This handles devices with wrong RTC dates.
             DateTime serverNow = DateTime.Now;
-            TimeSpan drift = serverNow - new_data.UpdateTime;
-            if (Math.Abs(drift.TotalHours) > 48)
+            
+            if (new_data.UpdateTime > serverNow)
             {
-                // Keep HH:mm:ss from device, use today's date from server
-                DateTime fixed_time = new DateTime(
-                    serverNow.Year, serverNow.Month, serverNow.Day,
-                    new_data.UpdateTime.Hour,
-                    new_data.UpdateTime.Minute,
-                    new_data.UpdateTime.Second,
-                    DateTimeKind.Local);
-
+                // Device time is in future - replace with server time
                 AuditLog.auditLog(new_data.GpsIMEINumber,
-                    string.Format("DateFix: DeviceTime={0} → FixedTime={1}",
-                        new_data.UpdateTime, fixed_time),
-                    "6063_DATE_FIX");
+                    string.Format("FutureFix: DeviceTime={0} → ServerTime={1}",
+                        new_data.UpdateTime, serverNow),
+                    "6063_FUTURE_FIX");
 
-                new_data.UpdateTime = fixed_time;
+                new_data.UpdateTime = serverNow;
+            }
+            else
+            {
+                // Check if date is way off in the past (> 7 days old)
+                TimeSpan drift = serverNow - new_data.UpdateTime;
+                if (drift.TotalDays > 7)
+                {
+                    // Keep HH:mm:ss from device, use today's date from server
+                    DateTime fixed_time = new DateTime(
+                        serverNow.Year, serverNow.Month, serverNow.Day,
+                        new_data.UpdateTime.Hour,
+                        new_data.UpdateTime.Minute,
+                        new_data.UpdateTime.Second,
+                        DateTimeKind.Local);
+
+                    AuditLog.auditLog(new_data.GpsIMEINumber,
+                        string.Format("PastDateFix: DeviceTime={0} → FixedTime={1}",
+                            new_data.UpdateTime, fixed_time),
+                        "6063_PAST_FIX");
+
+                    new_data.UpdateTime = fixed_time;
+                }
             }
 
             new_data.RemainingCash = 0;
