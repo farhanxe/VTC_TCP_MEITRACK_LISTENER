@@ -1,0 +1,139 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                    ✅ PORT 6066 MENU ITEM ADDED                           ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════
+  WHAT WAS ADDED
+═══════════════════════════════════════════════════════════════════════════
+
+In your MDI Parent form menu, you now have:
+
+  ⚙ Service Ports
+    ├─ 6062 — T366 (Meitrack)        [F3]
+    ├─ 6065 — T711L (Meitrack)       [F4]
+    └─ 6066 — VT200L                 [F5]  ← NEW!
+
+
+═══════════════════════════════════════════════════════════════════════════
+  HOW TO OPEN PORT 6066 FORM
+═══════════════════════════════════════════════════════════════════════════
+
+Method 1: Using Menu
+────────────────────────────────────────────────────────────────────────────
+1. Click "⚙ Service Ports" in menu bar
+2. Click "6066 — VT200L"
+3. ✅ frm6066 opens!
+
+
+Method 2: Using Keyboard Shortcut
+────────────────────────────────────────────────────────────────────────────
+1. Press F5
+2. ✅ frm6066 opens!
+
+
+═══════════════════════════════════════════════════════════════════════════
+  FILES MODIFIED
+═══════════════════════════════════════════════════════════════════════════
+
+1. FX_TCP/WInForm/MDIParent1.cs
+   └─ Added vt200LToolStripMenuItem_Click() method
+
+2. FX_TCP/WInForm/MDIParent1.Designer.cs
+   └─ Added menu item "6066 — VT200L"
+   └─ Wired F5 keyboard shortcut
+   └─ Connected click event handler
+
+
+═══════════════════════════════════════════════════════════════════════════
+  WHAT THE MENU ITEM DOES
+═══════════════════════════════════════════════════════════════════════════
+
+When you click "6066 — VT200L" or press F5:
+
+1. Creates new frm6066 instance
+2. Sets it as MDI child (docks inside main window)
+3. Shows the form
+4. Logs "frm6066" to audit log
+
+The form will show:
+  ✅ VT200L Server on port 6066
+  ✅ Real-time connection statistics
+  ✅ Active connections list
+  ✅ Live packet log
+  ✅ System metrics (CPU, Memory, Rate)
+
+
+═══════════════════════════════════════════════════════════════════════════
+  NEXT STEPS
+═══════════════════════════════════════════════════════════════════════════
+
+1. Build Solution
+   ────────────────────────────────────────────────────────────────────────
+   Open: FX_TCP.sln
+   Menu: Build → Build Solution (Ctrl+Shift+B)
+   Wait: Until "Build succeeded" message
+
+
+2. Run Application
+   ────────────────────────────────────────────────────────────────────────
+   Press F5 in Visual Studio
+   Or: Run FX_TCP.exe
+
+
+3. Open Port 6066 Form
+   ────────────────────────────────────────────────────────────────────────
+   Click: ⚙ Service Ports → 6066 — VT200L
+   Or Press: F5
+
+
+4. Verify
+   ────────────────────────────────────────────────────────────────────────
+   Check: Status shows "Listening on :6066"
+   Check: Green indicator light is on
+   Check: Log shows "VT200L Server started on port 6066"
+
+
+═══════════════════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════
+
+❌ Problem: Menu item doesn't appear after building
+────────────────────────────────────────────────────────────────────────────
+Solution: Clean and rebuild
+  1. Visual Studio → Build → Clean Solution
+  2. Build → Rebuild Solution
+
+
+❌ Problem: Form doesn't open when clicking menu
+────────────────────────────────────────────────────────────────────────────
+Solution: Check build errors
+  1. View → Error List
+  2. Fix any compilation errors
+  3. Rebuild
+
+
+❌ Problem: Error when opening form
+────────────────────────────────────────────────────────────────────────────
+Check:
+  [ ] frm6066.cs exists in WInForm folder
+  [ ] frm6066.Designer.cs exists
+  [ ] frm6066.resx exists
+  [ ] All three files included in project
+
+
+═══════════════════════════════════════════════════════════════════════════
+  KEYBOARD SHORTCUTS SUMMARY
+═══════════════════════════════════════════════════════════════════════════
+
+  F3  =  Open Port 6062 (T366)
+  F4  =  Open Port 6065 (T711L)
+  F5  =  Open Port 6066 (VT200L)  ← NEW!
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+✅ DONE! Port 6066 menu item is ready.
+
+Build the solution and you'll see it in the menu! 🚀
+
+═══════════════════════════════════════════════════════════════════════════

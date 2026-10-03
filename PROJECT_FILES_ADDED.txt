@@ -1,0 +1,185 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║           ✅ FRM6066 FILES ADDED TO PROJECT                               ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════
+  PROBLEM: Files existed but weren't in Solution Explorer
+═══════════════════════════════════════════════════════════════════════════
+
+Git showed changes to:
+  ✓ frm6066.cs
+  ✓ frm6066.Designer.cs
+  ✓ frm6066.resx
+
+But they didn't appear in Visual Studio Solution Explorer.
+
+WHY? The files were on disk but not registered in FX_TCP.csproj
+
+
+═══════════════════════════════════════════════════════════════════════════
+  SOLUTION: Added files to FX_TCP.csproj
+═══════════════════════════════════════════════════════════════════════════
+
+✅ FIXED! Added these entries to FX_TCP.csproj:
+
+1. Compile entries (C# code files):
+   ──────────────────────────────────────────────────────────────────────
+   <Compile Include="WInForm\frm6066.cs">
+     <SubType>Form</SubType>
+   </Compile>
+   <Compile Include="WInForm\frm6066.Designer.cs">
+     <DependentUpon>frm6066.cs</DependentUpon>
+   </Compile>
+
+2. EmbeddedResource entry (form resources):
+   ──────────────────────────────────────────────────────────────────────
+   <EmbeddedResource Include="WInForm\frm6066.resx">
+     <DependentUpon>frm6066.cs</DependentUpon>
+   </EmbeddedResource>
+
+
+═══════════════════════════════════════════════════════════════════════════
+  NEXT STEPS
+═══════════════════════════════════════════════════════════════════════════
+
+▶ STEP 1: Reload Project in Visual Studio
+────────────────────────────────────────────────────────────────────────────
+
+Option A: If Visual Studio shows "File modified outside" dialog
+  └─ Click "Reload All"
+
+Option B: Manual reload
+  1. Right-click "FX_TCP" project in Solution Explorer
+  2. Select "Unload Project"
+  3. Right-click "FX_TCP (unavailable)"
+  4. Select "Reload Project"
+
+Option C: Close and reopen solution
+  1. File → Close Solution
+  2. File → Open → Project/Solution
+  3. Select FX_TCP.sln
+
+
+▶ STEP 2: Verify Files Appear
+────────────────────────────────────────────────────────────────────────────
+
+In Solution Explorer, expand:
+  FX_TCP
+    └─ WInForm
+        ├─ Form1.cs
+        ├─ frm6062.cs
+        ├─ frm6063.cs
+        ├─ frm6066.cs          ← Should appear now! ✓
+        │   ├─ frm6066.Designer.cs
+        │   └─ frm6066.resx
+        └─ MDIParent1.cs
+
+
+▶ STEP 3: Build Solution
+────────────────────────────────────────────────────────────────────────────
+
+  Visual Studio → Build → Build Solution (Ctrl+Shift+B)
+
+  Expected: "Build succeeded"
+
+
+▶ STEP 4: Run and Test
+────────────────────────────────────────────────────────────────────────────
+
+  1. Press F5 (or Debug → Start Debugging)
+  2. In the app, press F5 or click: ⚙ Service Ports → 6066 — VT200L
+  3. frm6066 should open and show "Listening on :6066"
+
+
+═══════════════════════════════════════════════════════════════════════════
+  WHAT IF RELOAD DOESN'T WORK?
+═══════════════════════════════════════════════════════════════════════════
+
+If files still don't appear after reloading:
+
+Option 1: Add manually through Visual Studio
+────────────────────────────────────────────────────────────────────────────
+  1. Right-click "WInForm" folder in Solution Explorer
+  2. Add → Existing Item...
+  3. Navigate to: FX_TCP\WInForm\
+  4. Select: frm6066.cs
+  5. Click "Add"
+  6. Repeat for frm6066.Designer.cs and frm6066.resx
+
+  (Visual Studio will automatically set up dependencies)
+
+
+Option 2: Verify .csproj was saved
+────────────────────────────────────────────────────────────────────────────
+  1. Open: FX_TCP\FX_TCP.csproj in a text editor
+  2. Search for: "frm6066"
+  3. Should find 3 entries:
+     - <Compile Include="WInForm\frm6066.cs">
+     - <Compile Include="WInForm\frm6066.Designer.cs">
+     - <EmbeddedResource Include="WInForm\frm6066.resx">
+
+
+═══════════════════════════════════════════════════════════════════════════
+  FILES STRUCTURE (After reload)
+═══════════════════════════════════════════════════════════════════════════
+
+Solution Explorer should show:
+
+  📁 FX_TCP
+     📁 Properties
+     📁 References
+     📁 Class
+     📁 WInForm
+        📄 Form1.cs
+           ├─ Form1.Designer.cs
+           └─ Form1.resx
+        📄 frm6062.cs
+           ├─ frm6062.Designer.cs
+           └─ frm6062.resx
+        📄 frm6063.cs
+           ├─ frm6063.Designer.cs
+           └─ frm6063.resx
+        📄 frm6066.cs          ← NEW!
+           ├─ frm6066.Designer.cs
+           └─ frm6066.resx
+        📄 MDIParent1.cs
+           ├─ MDIParent1.Designer.cs
+           └─ MDIParent1.resx
+     📄 App.config
+     📄 Program.cs
+     📄 VTS_Model.edmx
+     ...
+
+
+═══════════════════════════════════════════════════════════════════════════
+  VERIFY IT'S WORKING
+═══════════════════════════════════════════════════════════════════════════
+
+✓ Checklist:
+  [ ] frm6066.cs appears in Solution Explorer under WInForm
+  [ ] Can double-click frm6066.cs to open in code editor
+  [ ] Build solution succeeds with 0 errors
+  [ ] Run application (F5)
+  [ ] Press F5 or click menu: ⚙ Service Ports → 6066 — VT200L
+  [ ] frm6066 form opens
+  [ ] Status shows "Listening on :6066"
+  [ ] Green indicator light is on
+
+
+═══════════════════════════════════════════════════════════════════════════
+  SUMMARY
+═══════════════════════════════════════════════════════════════════════════
+
+✅ Problem identified: Files on disk but not in .csproj
+✅ Solution applied: Added 3 entries to FX_TCP.csproj
+✅ Next step: Reload project in Visual Studio
+✅ Then: Build and run!
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+📌 IMPORTANT: You MUST reload the project for changes to take effect!
+
+Right-click FX_TCP → Unload Project → Right-click → Reload Project
+
+═══════════════════════════════════════════════════════════════════════════

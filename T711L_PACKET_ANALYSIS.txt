@@ -1,0 +1,88 @@
+# T711L Packet Field Analysis
+
+## Sample Packet:
+$$A155,861490079986445,AAA,35,23.963763,90.620880,261001073324,A,10,23,1,65,0.9,4,766,9381,470|1|E54D|026F9548,0000,0000|0000|0000|0184|09A5,00000001,1,,,,,*04
+
+## Field Breakdown (comma-separated):
+
+Index | Value                    | Description
+------|--------------------------|----------------------------------
+0     | $$A155                   | Device ID header
+1     | 861490079986445          | IMEI
+2     | AAA                      | Command
+3     | 35                       | Event code (35=interval)
+4     | 23.963763                | Latitude
+5     | 90.620880                | Longitude
+6     | 261001073324             | DateTime (DDMMYYHHMMSS)
+7     | A                        | GPS validity (A=valid, V=invalid)
+8     | 10                       | Satellites
+9     | 23                       | GSM signal strength
+10    | 1                        | Speed (km/h)
+11    | 65                       | Course (degrees)
+12    | 0.9                      | HDOP
+13    | 4                        | Altitude (meters)
+14    | 766                      | Mileage
+15    | 9381                     | Runtime
+16    | 470|1|E54D|026F9548      | Cell tower info (MCC|MNC|LAC|CellID)
+17    | 0000                     | IO Port status ← CURRENT CHECK
+18    | 0000|0000|0000|0184|09A5 | Analog values (AD1|AD2|...)
+19    | 00000001                 | Status flags
+20    | 1                        | Battery level
+21-25 | (empty fields)           | Reserved/optional
+26    | *04                      | Checksum
+
+## IO Port Field (Index 17): 0000
+
+Binary: 0000 0000 0000 0000
+
+Bit breakdown:
+- Bit 0 (LSB): 0 - ACC/Ignition status
+- Bit 1:     0 - Door status
+- Bit 2:     0 - Custom input 1
+- Bit 3:     0 - Custom input 2
+- etc.
+
+## Current Code Logic:
+```csharp
+DeriveEngineStatus(eventCode="35", ioPortHex="0000")
+  if (eventCode == "1") return "1";  // Ignition ON event
+  if (eventCode == "9") return "0";  // Ignition OFF event
+  return ((0x0000 & 0x01) != 0) ? "1" : "0";  // Check bit 0
+  // Result: 0 (OFF)
+```
+
+## PROBLEM IDENTIFIED:
+
+All packets show:
+- Field 17 (IO Port) = 0000
+- Event code = 35 (interval report, not ignition event)
+- Current code: Check bit 0 of 0x0000 → Result: "0" (OFF)
+
+But the device IS active (moving at speeds 1-10 km/h, multiple satellites).
+
+## POSSIBLE ISSUES:
+
+1. **Bit 0 is NOT the ACC bit for this device model**
+   - May need to check a different bit (e.g., bit 2, bit 3)
+   
+2. **IO Port field is not populated**
+   - Device may not have ACC connected to IO port
+   - Need to check Status flags (field 19) instead
+
+3. **ACC status is in Status flags field (index 19)**
+   - Value: 00000001 (hex) = 0000 0000 0000 0000 0000 0000 0000 0001 (binary)
+   - May need to check this field instead
+
+## NEXT STEP:
+
+Need to check:
+1. Device manual for correct ACC bit position
+2. Status flags field (index 19) format
+3. Or use event codes 1/9 only for engine status
+
+## TEMPORARY WORKAROUND:
+
+If device doesn't report ACC via IO port, we can:
+- Only rely on event codes (1=ON, 9=OFF)
+- Or assume engine is ON if speed > 0
+- Or check Status flags field

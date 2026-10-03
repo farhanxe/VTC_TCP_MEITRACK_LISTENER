@@ -14,6 +14,7 @@ namespace FX_TCP.Class
         public static int Max_Connected_Socket_6062 { get; set; }
         public static double Distance_Change_Range_In_KM_6062 { get; set; }
         public static double Distance_Change_Range_In_KM_6063 { get; set; }
+        public static double Distance_Change_Range_In_KM_6066 { get; set; }
         public static void Quit()
         {
             if (CommonClass.ToQuit == true)

@@ -352,6 +352,193 @@ namespace FX_TCP
                 new System.Data.SqlClient.SqlParameter("@RemainingCash",        d.RemainingCash)
             };
         }
+        // ─────────────────────────────────────────────────────────────────────
+        //  PORT 6066  –  VT200L GPRS Protocol
+        //  Calls NEW dedicated VT200L_* stored procedures.
+        //  All numeric params typed as decimal/int — no varchar conversion.
+        // ─────────────────────────────────────────────────────────────────────
+        public string PushDeviceData_PORT_6066(DB_Helper_Data new_data)
+        {
+            // ── Timestamp sanity fix ──────────────────────────────────────────
+            // If device time is in the FUTURE (> server time), clamp it to server time.
+            // This handles devices with wrong RTC dates.
+            DateTime serverNow = DateTime.Now;
+            
+            if (new_data.UpdateTime > serverNow)
+            {
+                // Device time is in future - replace with server time
+                AuditLog.auditLog(new_data.GpsIMEINumber,
+                    string.Format("FutureFix: DeviceTime={0} → ServerTime={1}",
+                        new_data.UpdateTime, serverNow),
+                    "6066_FUTURE_FIX");
+
+                new_data.UpdateTime = serverNow;
+            }
+            else
+            {
+                // Check if date is way off in the past (> 7 days old)
+                TimeSpan drift = serverNow - new_data.UpdateTime;
+                if (drift.TotalDays > 7)
+                {
+                    // Keep HH:mm:ss from device, use today's date from server
+                    DateTime fixed_time = new DateTime(
+                        serverNow.Year, serverNow.Month, serverNow.Day,
+                        new_data.UpdateTime.Hour,
+                        new_data.UpdateTime.Minute,
+                        new_data.UpdateTime.Second,
+                        DateTimeKind.Local);
+
+                    AuditLog.auditLog(new_data.GpsIMEINumber,
+                        string.Format("PastDateFix: DeviceTime={0} → FixedTime={1}",
+                            new_data.UpdateTime, fixed_time),
+                        "6066_PAST_FIX");
+
+                    new_data.UpdateTime = fixed_time;
+                }
+            }
+
+            new_data.RemainingCash = 0;
+            try
+            {
+                var old_data = (from v in db.VehicleTrackingInformations
+                                    .Where(v => v.GpsIMEINumber == new_data.GpsIMEINumber)
+                                join vt in db.VehicleTrackings on v.PK_Vehicle equals vt.PK_Vehicle
+                                select new { v.PK_Vehicle, vt.Latitude, vt.Longitude, vt.UpdateTime })
+                               .FirstOrDefault();
+
+                string   sql;
+                object[] prms;
+
+                if (old_data == null)
+                {
+                    sql  = "EXEC dbo.VT200L_Insert_Insert " + VT200L_InsertParamNames();
+                    prms = VT200L_InsertParams(new_data);
+                }
+                else if (new_data.UpdateTime > old_data.UpdateTime)
+                {
+                    bool moved = distanceInKmBetweenEarthCoordinates(
+                        old_data.Latitude, old_data.Longitude,
+                        new_data.Latitude, new_data.Longitude)
+                        > CommonClass.Distance_Change_Range_In_KM_6066;
+
+                    sql  = "EXEC dbo.VT200L_Update_Insert " + VT200L_UpdateParamNames();
+                    prms = VT200L_UpdateParams(old_data.PK_Vehicle, new_data, moved ? 1 : 0);
+                }
+                else
+                {
+                    sql  = "EXEC dbo.VT200L__Insert " + VT200L_HeartbeatParamNames();
+                    prms = VT200L_HeartbeatParams(old_data.PK_Vehicle, new_data);
+                }
+
+                string response = db.Database.SqlQuery<string>(sql, prms).FirstOrDefault() ?? "VT200L-OK";
+                AuditLog.auditLog(new_data.GpsIMEINumber, "DB: " + response, "6066_DB");
+                return response;
+            }
+            catch (Exception ex)
+            {
+                AuditLog.auditLog(new_data.GpsIMEINumber, ex.Message, "6066_DB_ERR");
+                return "Exception: " + ex.Message;
+            }
+        }
+
+        // ── VT200L SP parameter helpers ────────────────────────────────────────
+
+        private static string VT200L_InsertParamNames() =>
+            "@GpsIMEINumber,@UpdateTime,@Latitude,@Longitude," +
+            "@Altitude,@EngineStatus,@Course,@Temperature," +
+            "@Fuel,@Speed,@Distance,@Mileage,@EventCode," +
+            "@Status_PostionValidity,@Status_SateliteCount," +
+            "@Status_GSMSignalStrength,@RemainingCash";
+
+        private static object[] VT200L_InsertParams(DB_Helper_Data d)
+        {
+            return new object[]
+            {
+                new System.Data.SqlClient.SqlParameter("@GpsIMEINumber",          d.GpsIMEINumber),
+                new System.Data.SqlClient.SqlParameter("@UpdateTime",             d.UpdateTime),
+                new System.Data.SqlClient.SqlParameter("@Latitude",              (decimal)d.Latitude),
+                new System.Data.SqlClient.SqlParameter("@Longitude",             (decimal)d.Longitude),
+                new System.Data.SqlClient.SqlParameter("@Altitude",              (decimal)d.Altitude),
+                new System.Data.SqlClient.SqlParameter("@EngineStatus",           d.EngineStatus ?? "0"),
+                new System.Data.SqlClient.SqlParameter("@Course",                (decimal)d.Course),
+                new System.Data.SqlClient.SqlParameter("@Temperature",           (decimal)d.Temperature),
+                new System.Data.SqlClient.SqlParameter("@Fuel",                  (decimal)d.Fuel),
+                new System.Data.SqlClient.SqlParameter("@Speed",                 (decimal)d.Speed),
+                new System.Data.SqlClient.SqlParameter("@Distance",              decimal.Parse(d.Distance ?? "0", System.Globalization.CultureInfo.InvariantCulture)),
+                new System.Data.SqlClient.SqlParameter("@Mileage",               DBNull.Value) { IsNullable = true },
+                new System.Data.SqlClient.SqlParameter("@EventCode",             d.EventCode ?? "0"),
+                new System.Data.SqlClient.SqlParameter("@Status_PostionValidity",d.Status_PostionValidity ?? "V"),
+                new System.Data.SqlClient.SqlParameter("@Status_SateliteCount",  d.Status_SateliteCount),
+                new System.Data.SqlClient.SqlParameter("@Status_GSMSignalStrength", d.Status_GSMSignalStrength),
+                new System.Data.SqlClient.SqlParameter("@RemainingCash",         d.RemainingCash)
+            };
+        }
+
+        private static string VT200L_UpdateParamNames() =>
+            "@PK_Vehicle,@GpsIMEINumber,@UpdateTime,@Latitude,@Longitude," +
+            "@Altitude,@EngineStatus,@Course,@Temperature," +
+            "@Fuel,@Speed,@Distance,@Mileage,@EventCode," +
+            "@Status_PostionValidity,@Status_SateliteCount," +
+            "@Status_GSMSignalStrength,@RemainingCash,@IsLocationChanged";
+
+        private static object[] VT200L_UpdateParams(Guid pk, DB_Helper_Data d, int locationChanged)
+        {
+            return new object[]
+            {
+                new System.Data.SqlClient.SqlParameter("@PK_Vehicle",            pk),
+                new System.Data.SqlClient.SqlParameter("@GpsIMEINumber",         d.GpsIMEINumber),
+                new System.Data.SqlClient.SqlParameter("@UpdateTime",            d.UpdateTime),
+                new System.Data.SqlClient.SqlParameter("@Latitude",             (decimal)d.Latitude),
+                new System.Data.SqlClient.SqlParameter("@Longitude",            (decimal)d.Longitude),
+                new System.Data.SqlClient.SqlParameter("@Altitude",             (decimal)d.Altitude),
+                new System.Data.SqlClient.SqlParameter("@EngineStatus",          d.EngineStatus ?? "0"),
+                new System.Data.SqlClient.SqlParameter("@Course",               (decimal)d.Course),
+                new System.Data.SqlClient.SqlParameter("@Temperature",          (decimal)d.Temperature),
+                new System.Data.SqlClient.SqlParameter("@Fuel",                 (decimal)d.Fuel),
+                new System.Data.SqlClient.SqlParameter("@Speed",                (decimal)d.Speed),
+                new System.Data.SqlClient.SqlParameter("@Distance",             decimal.Parse(d.Distance ?? "0", System.Globalization.CultureInfo.InvariantCulture)),
+                new System.Data.SqlClient.SqlParameter("@Mileage",              DBNull.Value) { IsNullable = true },
+                new System.Data.SqlClient.SqlParameter("@EventCode",            d.EventCode ?? "0"),
+                new System.Data.SqlClient.SqlParameter("@Status_PostionValidity",d.Status_PostionValidity ?? "V"),
+                new System.Data.SqlClient.SqlParameter("@Status_SateliteCount", d.Status_SateliteCount),
+                new System.Data.SqlClient.SqlParameter("@Status_GSMSignalStrength", d.Status_GSMSignalStrength),
+                new System.Data.SqlClient.SqlParameter("@RemainingCash",        d.RemainingCash),
+                new System.Data.SqlClient.SqlParameter("@IsLocationChanged",    locationChanged == 1)
+            };
+        }
+
+        private static string VT200L_HeartbeatParamNames() =>
+            "@PK_Vehicle,@GpsIMEINumber,@UpdateTime,@Latitude,@Longitude," +
+            "@Altitude,@EngineStatus,@Course,@Temperature," +
+            "@Fuel,@Speed,@Distance,@Mileage,@EventCode," +
+            "@Status_PostionValidity,@Status_SateliteCount," +
+            "@Status_GSMSignalStrength,@RemainingCash";
+
+        private static object[] VT200L_HeartbeatParams(Guid pk, DB_Helper_Data d)
+        {
+            return new object[]
+            {
+                new System.Data.SqlClient.SqlParameter("@PK_Vehicle",            pk),
+                new System.Data.SqlClient.SqlParameter("@GpsIMEINumber",         d.GpsIMEINumber),
+                new System.Data.SqlClient.SqlParameter("@UpdateTime",            d.UpdateTime),
+                new System.Data.SqlClient.SqlParameter("@Latitude",             (decimal)d.Latitude),
+                new System.Data.SqlClient.SqlParameter("@Longitude",            (decimal)d.Longitude),
+                new System.Data.SqlClient.SqlParameter("@Altitude",             (decimal)d.Altitude),
+                new System.Data.SqlClient.SqlParameter("@EngineStatus",          d.EngineStatus ?? "0"),
+                new System.Data.SqlClient.SqlParameter("@Course",               (decimal)d.Course),
+                new System.Data.SqlClient.SqlParameter("@Temperature",          (decimal)d.Temperature),
+                new System.Data.SqlClient.SqlParameter("@Fuel",                 (decimal)d.Fuel),
+                new System.Data.SqlClient.SqlParameter("@Speed",                (decimal)d.Speed),
+                new System.Data.SqlClient.SqlParameter("@Distance",             decimal.Parse(d.Distance ?? "0", System.Globalization.CultureInfo.InvariantCulture)),
+                new System.Data.SqlClient.SqlParameter("@Mileage",              DBNull.Value) { IsNullable = true },
+                new System.Data.SqlClient.SqlParameter("@EventCode",            d.EventCode ?? "0"),
+                new System.Data.SqlClient.SqlParameter("@Status_PostionValidity",d.Status_PostionValidity ?? "V"),
+                new System.Data.SqlClient.SqlParameter("@Status_SateliteCount", d.Status_SateliteCount),
+                new System.Data.SqlClient.SqlParameter("@Status_GSMSignalStrength", d.Status_GSMSignalStrength),
+                new System.Data.SqlClient.SqlParameter("@RemainingCash",        d.RemainingCash)
+            };
+        }
+
         public string CleanDeviceData()
         {
             string reponseFromProcedure = "";

@@ -196,6 +196,12 @@
     <Compile Include="WInForm\frm6063.Designer.cs">
       <DependentUpon>frm6063.cs</DependentUpon>
     </Compile>
+    <Compile Include="WInForm\frm6066.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="WInForm\frm6066.Designer.cs">
+      <DependentUpon>frm6066.cs</DependentUpon>
+    </Compile>
     <Compile Include="VTS_Model.Context.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -229,6 +235,9 @@
     </EmbeddedResource>
     <EmbeddedResource Include="WInForm\frm6063.resx">
       <DependentUpon>frm6063.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="WInForm\frm6066.resx">
+      <DependentUpon>frm6066.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="WInForm\Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>

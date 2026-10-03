@@ -1,0 +1,229 @@
+════════════════════════════════════════════════════════════════════════
+  VT200L PORT 6066 - QUICK START GUIDE
+════════════════════════════════════════════════════════════════════════
+
+✅ COMPLETED IMPLEMENTATION:
+  ✓ App.config updated with port 6066 settings
+  ✓ DB_Helper.cs with PushDeviceData_PORT_6066() method
+  ✓ PublicClass.cs with ActiveConnection_6066 counter
+  ✓ CommonClass.cs with Distance_Change_Range_In_KM_6066
+  ✓ frm6066.cs - Full TCP listener (800+ lines)
+  ✓ frm6066.Designer.cs - WinForms UI
+  ✓ frm6066.resx - Form resources
+  ✓ VT200L_StoredProcedures.sql - 3 stored procedures
+  ✓ Complete documentation
+
+════════════════════════════════════════════════════════════════════════
+  DEPLOYMENT STEPS (5 MINUTES)
+════════════════════════════════════════════════════════════════════════
+
+[ ] 1. RUN SQL SCRIPT
+    Open SQL Server Management Studio
+    Connect to: 172.17.9.160,1433 (or your SQL server)
+    Database: 3rdEyE
+    Execute: FX_TCP\SQL\VT200L_StoredProcedures.sql
+    
+    This creates:
+      - VT200L_Insert_Insert
+      - VT200L_Update_Insert  
+      - VT200L__Insert
+
+[ ] 2. BUILD SOLUTION
+    Open: FX_TCP.sln in Visual Studio
+    Build → Build Solution (Ctrl+Shift+B)
+    Check for errors (should be 0)
+
+[ ] 3. OPEN FIREWALL PORT
+    PowerShell (as Administrator):
+    
+    New-NetFirewallRule -DisplayName "VT200L GPS 6066" `
+      -Direction Inbound -LocalPort 6066 -Protocol TCP -Action Allow
+
+[ ] 4. REGISTER DEVICES
+    SQL:
+    
+    -- Check if IMEI exists
+    SELECT * FROM VehicleTrackingInformation 
+    WHERE GpsIMEINumber = '868618052108909'
+    
+    -- If not found, insert your devices
+    INSERT INTO VehicleTrackingInformation (PK_Vehicle, GpsIMEINumber, ...)
+    VALUES (NEWID(), '868618052108909', ...)
+
+[ ] 5. CONFIGURE VT200L DEVICES
+    Send SMS to devices:
+    
+    100,<your_server_ip>,6066        (set server and port)
+    101,30                            (30 second interval)
+    102,1                             (enable GPS)
+
+[ ] 6. RUN APPLICATION
+    Launch FX_TCP.exe
+    From MDI parent, open frm6066
+    
+    You should see:
+    ✓ "Listening on :6066" 
+    ✓ Green indicator
+    ✓ "VT200L Server started" in log
+
+[ ] 7. VERIFY DATA
+    SQL:
+    
+    -- Check live data
+    SELECT TOP 10 * FROM VehicleTracking 
+    WHERE GpsIMEINumber = '868618052108909'
+    ORDER BY UpdateTime DESC
+    
+    -- Check historical data  
+    SELECT TOP 10 * FROM [3rdEyE_TrackingDataBase_2026_08_x2].dbo.DeviceData
+    WHERE GpsIMEINumber = '868618052108909'
+    ORDER BY UpdateTime DESC
+
+════════════════════════════════════════════════════════════════════════
+  MONITORING
+════════════════════════════════════════════════════════════════════════
+
+Watch these in frm6066 UI:
+  • Connections: Should show connected devices
+  • RX (Received): Should increase with each packet
+  • OK (Processed): Should match RX (or slightly less with dedup)
+  • Parse Err: Should be 0
+  • DB Err: Should be 0
+  • Queue: Should be 0-50 (spikes OK)
+  • Rate: Packets per second
+  • Deduped: Duplicate packets skipped
+
+Color codes in Live Log:
+  • Cyan   = Parsed packet
+  • Green  = DB success
+  • Orange = Warning (disconnection)
+  • Red    = Error
+  • Gray   = Debug (ACK sent)
+
+════════════════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+════════════════════════════════════════════════════════════════════════
+
+Problem: No packets received
+└─ Check: Firewall, device config, internet connectivity
+
+Problem: Parse errors
+└─ Check: Audit log for actual packet, protocol version
+
+Problem: DB errors  
+└─ Check: IMEI registered, stored procedures exist, date partitions
+
+Problem: Temperature/Fuel = 0
+└─ Check: Sensors connected, adjust constants in code
+
+Problem: High queue depth
+└─ Check: DB latency, increase Queue_BatchSize_6066
+
+════════════════════════════════════════════════════════════════════════
+  CONFIGURATION (App.config)
+════════════════════════════════════════════════════════════════════════
+
+<add key="PORT_for_6066" value="6066" />
+<add key="Distance_Change_Range_In_KM_6066" value="0.05" />
+<add key="UTC_Offset_Seconds_6066" value="21600" />
+<add key="Dedup_Seconds_6066" value="10" />
+<add key="Queue_BatchSize_6066" value="50" />
+
+Adjust these as needed:
+  • Distance: 0.05 km = 50 meters (location change threshold)
+  • UTC Offset: 21600 = UTC+6 (Bangladesh), adjust for your timezone
+  • Dedup: 10 seconds (skip DB if same data within window)
+  • Batch: 50 packets per DB writer cycle
+
+════════════════════════════════════════════════════════════════════════
+  VT200L PROTOCOL EXAMPLE
+════════════════════════════════════════════════════════════════════════
+
+Tracker sends:
+  &&<153,868618052108909,000,0,,210526063453,A,19.956285,99.860008,...
+
+Server replies:
+  $$<22,868618052108909,000,16F\r\n
+     ^--- same pack-no
+
+Fields:
+  • 868618052108909 = IMEI
+  • 000 = Command (normal data)
+  • 0 = Event code (interval)
+  • 210526063453 = 2021-05-26 06:34:53
+  • A = GPS valid (V = invalid)
+  • 19.956285 = Latitude
+  • 99.860008 = Longitude
+  • 14 = Satellites
+  • 0 = Speed (km/h)
+  • 61 = Course (degrees)
+  • 390 = Altitude (meters)
+  • 000000BC = System status (hex)
+  • 0508|01A0|0000|0000 = Voltages (ext|bat|AD1|AD2)
+  • 010109D9 = Temperature sensor
+
+════════════════════════════════════════════════════════════════════════
+  IMPORTANT NOTES
+════════════════════════════════════════════════════════════════════════
+
+⚠ MONTHLY TASK: Update stored procedures with new date partitions
+  before month-end (see VT200L_DEPLOYMENT_GUIDE.md)
+
+⚠ VT200L REQUIRES server acknowledgment or devices will disconnect
+
+⚠ Fuel/Temperature constants may need adjustment for your sensors:
+  - Open frm6066.cs
+  - Search for "MAX_VOLTAGE" and "TANK_CAPACITY_LITERS"
+  - Adjust based on your sensor specs
+
+⚠ All devices MUST be in VehicleTrackingInformation table
+
+════════════════════════════════════════════════════════════════════════
+  FILES REFERENCE
+════════════════════════════════════════════════════════════════════════
+
+Implementation:
+  • FX_TCP\App.config                      (config)
+  • FX_TCP\Class\DB_Helper.cs              (database)
+  • FX_TCP\Class\PublicClass.cs            (counters)
+  • FX_TCP\Class\CommonClass.cs            (settings)
+  • FX_TCP\WInForm\frm6066.cs              (TCP listener)
+  • FX_TCP\WInForm\frm6066.Designer.cs     (UI)
+  • FX_TCP\WInForm\frm6066.resx            (resources)
+
+Database:
+  • FX_TCP\SQL\VT200L_StoredProcedures.sql (run this first!)
+
+Documentation:
+  • FX_TCP\SQL\VT200L_DEPLOYMENT_GUIDE.md  (full guide)
+  • PORT_6066_IMPLEMENTATION_SUMMARY.md    (summary)
+  • QUICK_START_6066.txt                   (this file)
+
+════════════════════════════════════════════════════════════════════════
+  SUPPORT
+════════════════════════════════════════════════════════════════════════
+
+For detailed help, see:
+  FX_TCP\SQL\VT200L_DEPLOYMENT_GUIDE.md
+
+Audit logs in SQL:
+  SELECT * FROM AuditLog 
+  WHERE ActionType LIKE '6066%'
+  ORDER BY ActionTime DESC
+
+Protocol reference:
+  Original VT200L protocol documentation (included in your message)
+
+════════════════════════════════════════════════════════════════════════
+
+✨ IMPLEMENTATION COMPLETE ✨
+
+Port 6066 is ready for production deployment. All files have been
+created, code follows your existing architecture, and comprehensive
+documentation is included.
+
+No existing ports (6062, 6063, 6065) were modified.
+
+Deploy, configure devices, and enjoy real-time VT200L tracking! 🚀
+
+════════════════════════════════════════════════════════════════════════

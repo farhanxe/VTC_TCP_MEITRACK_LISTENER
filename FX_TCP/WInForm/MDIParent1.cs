@@ -74,9 +74,10 @@ namespace FX_TCP
             this.Text = "FX TCP  |  Vehicle Tracking Server  |  v" + ver +
                         "  |  Started: " + DateTime.Now.ToString("yyyy-MM-dd  HH:mm:ss");
 
-            // Auto-open both child forms
+            // Auto-open all child forms
             t366ToolStripMenuItem_Click(null, null);
             t711LToolStripMenuItem_Click(null, null);
+            vt200LToolStripMenuItem_Click(null, null);
         }
 
         // ── CPU / MEM polling ─────────────────────────────────────────────────
@@ -86,17 +87,35 @@ namespace FX_TCP
                 backgroundWorker1.RunWorkerAsync();
         }
 
-        private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e) { }
+        private void backgroundWorker1_DoWork(object sender, DoWorkEventArgs e)
+        {
+            // CRITICAL FIX: Move CPU monitoring to background thread, NOT UI thread!
+            try
+            {
+                var cpu = new PerformanceCounter("Processor", "% Processor Time", "_Total");
+                cpu.NextValue();
+                System.Threading.Thread.Sleep(200); // Sleep in BACKGROUND thread, not UI thread
+                int pct = (int)cpu.NextValue();
+                cpu.Dispose();
+                
+                long memMb = Process.GetCurrentProcess().WorkingSet64 / (1024 * 1024);
+                
+                e.Result = new { CpuPercent = pct, MemoryMb = memMb };
+            }
+            catch (Exception ex)
+            {
+                e.Result = new { CpuPercent = 0, MemoryMb = 0L };
+            }
+        }
 
         private void backgroundWorker1_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             try
             {
-                var cpu = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-                cpu.NextValue();
-                System.Threading.Thread.Sleep(200);
-                int pct = (int)cpu.NextValue();
-                cpu.Dispose();
+                // CRITICAL FIX: No sleep or blocking operations on UI thread!
+                dynamic result = e.Result;
+                int pct = result.CpuPercent;
+                long memMb = result.MemoryMb;
 
                 cpuUsages_ProgressBar.Value = Math.Min(pct, 100);
                 cpuUsages_ProgressBar.ForeColor = pct > 80 ? Color.OrangeRed
@@ -105,7 +124,14 @@ namespace FX_TCP
                 lblCPU_Usages.Text      = "CPU: " + pct + " %";
                 lblCPU_Usages.ForeColor = cpuUsages_ProgressBar.ForeColor;
 
-                long memMb = Process.GetCurrentProcess().WorkingSet64 / (1024 * 1024);
+
+                cpuUsages_ProgressBar.Value = Math.Min(pct, 100);
+                cpuUsages_ProgressBar.ForeColor = pct > 80 ? Color.OrangeRed
+                                                : pct > 50 ? Color.Orange
+                                                : Color.LimeGreen;
+                lblCPU_Usages.Text      = "CPU: " + pct + " %";
+                lblCPU_Usages.ForeColor = cpuUsages_ProgressBar.ForeColor;
+
                 lblMemUsage.Text = "  MEM: " + memMb + " MB";
 
                 lblSysTime.Text = DateTime.Now.ToString("yyyy-MM-dd  HH:mm:ss");
@@ -126,6 +152,14 @@ namespace FX_TCP
         {
             AuditLog.auditLog("frm6063", "1");
             var frm = new frm6063();
+            frm.MdiParent = this;
+            frm.Show();
+        }
+
+        private void vt200LToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            AuditLog.auditLog("frm6066", "1");
+            var frm = new frm6066();
             frm.MdiParent = this;
             frm.Show();
         }

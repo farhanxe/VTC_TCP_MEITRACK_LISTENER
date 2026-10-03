@@ -6,6 +6,7 @@ using System.Configuration;
 using System.Diagnostics;
 using System.Drawing;
 using System.Globalization;
+using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -15,29 +16,28 @@ using FX_TCP.Class;
 
 namespace FX_TCP
 {
-    public partial class frm6063 : Form
+    public partial class frm6066 : Form
     {
         // ── Configuration ──────────────────────────────────────────────────────
         private bool   _isLiveMode;
         private int    _portNo;
         private int    _utcOffsetSeconds;
         private double _distChangeRangeKm;
-        private int    _dedupSeconds;     // skip DB if same pos within N seconds
-        private int    _batchSize;        // packets per DB writer cycle
+        private int    _dedupSeconds;
+        private int    _batchSize;
 
         // ── Network ────────────────────────────────────────────────────────────
         private Socket _serverSocket;
         private readonly ConcurrentDictionary<string, ClientState> _clients
             = new ConcurrentDictionary<string, ClientState>();
 
-        // ── Write queue (TCP threads enqueue; background thread dequeues) ──────
+        // ── Write queue ────────────────────────────────────────────────────────
         private readonly ConcurrentQueue<DB_Helper_Data> _writeQueue
             = new ConcurrentQueue<DB_Helper_Data>();
         private Thread   _writerThread;
         private volatile bool _writerRunning = false;
 
-        // ── Per-IMEI dedup cache ──────────────────────────────────────────────
-        // Key = IMEI, Value = (last saved time, last lat, last lon, last engine)
+        // ── Per-IMEI dedup cache ───────────────────────────────────────────────
         private readonly ConcurrentDictionary<string, DedupEntry> _dedupCache
             = new ConcurrentDictionary<string, DedupEntry>();
 
@@ -51,12 +51,12 @@ namespace FX_TCP
             public double   Temperature;
         }
 
-        // ── Counters (Interlocked) ─────────────────────────────────────────────
+        // ── Counters ───────────────────────────────────────────────────────────
         private long _totalReceived    = 0;
         private long _totalProcessed   = 0;
         private long _totalDbErrors    = 0;
         private long _totalParseErrors = 0;
-        private long _totalDeduped     = 0;   // packets skipped by dedup
+        private long _totalDeduped     = 0;
         private long _prevReceived     = 0;
 
         // ── System metrics ─────────────────────────────────────────────────────
@@ -76,6 +76,7 @@ namespace FX_TCP
             public string        LastIMEI    { get; set; } = "";
             public DateTime      LastPacket  { get; set; } = DateTime.Now;
             public long          PacketCount { get; set; } = 0;
+            public string        LastPackNo  { get; set; } = "";
             public ClientState(Socket s)
             {
                 Socket   = s;
@@ -84,14 +85,14 @@ namespace FX_TCP
         }
 
         // ── Constructor ────────────────────────────────────────────────────────
-        public frm6063()
+        public frm6066()
         {
             InitializeComponent();
             CheckForIllegalCrossThreadCalls = false;
         }
 
         // ── Form Load ──────────────────────────────────────────────────────────
-        private void frm6063_Load(object sender, EventArgs e)
+        private void frm6066_Load(object sender, EventArgs e)
         {
             _startTime = DateTime.Now;
             try { _cpuCounter = new PerformanceCounter("Processor", "% Processor Time", "_Total"); }
@@ -104,12 +105,12 @@ namespace FX_TCP
                 UpdateModeBadge();
                 timerUI.Start();
                 AppendLog(string.Format(
-                    "Server started on port {0}  |  Dedup={1}s  BatchSize={2}",
+                    "VT200L Server started on port {0}  |  Dedup={1}s  BatchSize={2}",
                     _portNo, _dedupSeconds, _batchSize), LogLevel.Info);
             }
             catch (Exception ex)
             {
-                AuditLog.auditLog(ex.Message, "frm6063_Load");
+                AuditLog.auditLog(ex.Message, "frm6066_Load");
                 SetStatusError("FATAL: " + ex.Message);
                 AppendLog("FATAL: " + ex.Message, LogLevel.Error);
             }
@@ -119,18 +120,18 @@ namespace FX_TCP
         private void LoadConfig()
         {
             _portNo = int.Parse(
-                ConfigurationManager.AppSettings["PORT_for_6065"] ?? "6065");
+                ConfigurationManager.AppSettings["PORT_for_6066"] ?? "6066");
             _isLiveMode = (ConfigurationManager.AppSettings["IsLiveMode"] ?? "0") == "1";
             _distChangeRangeKm = double.Parse(
-                ConfigurationManager.AppSettings["Distance_Change_Range_In_KM_6065"] ?? "0.05",
+                ConfigurationManager.AppSettings["Distance_Change_Range_In_KM_6066"] ?? "0.05",
                 CultureInfo.InvariantCulture);
             _utcOffsetSeconds = int.Parse(
-                ConfigurationManager.AppSettings["UTC_Offset_Seconds_6065"] ?? "0");
+                ConfigurationManager.AppSettings["UTC_Offset_Seconds_6066"] ?? "0");
             _dedupSeconds = int.Parse(
-                ConfigurationManager.AppSettings["Dedup_Seconds_6065"] ?? "30");
+                ConfigurationManager.AppSettings["Dedup_Seconds_6066"] ?? "10");
             _batchSize = int.Parse(
-                ConfigurationManager.AppSettings["Queue_BatchSize_6065"] ?? "50");
-            CommonClass.Distance_Change_Range_In_KM_6063 = _distChangeRangeKm;
+                ConfigurationManager.AppSettings["Queue_BatchSize_6066"] ?? "50");
+            CommonClass.Distance_Change_Range_In_KM_6066 = _distChangeRangeKm;
         }
 
         // ── TCP server ──────────────────────────────────────────────────────────
@@ -143,22 +144,18 @@ namespace FX_TCP
             _serverSocket.BeginAccept(AcceptCallback, null);
             picIndicator.BackColor = Color.LimeGreen;
             SetStatus("Listening on :" + _portNo, Color.LightGreen);
-            AuditLog.auditLog("TCP server started on port " + _portNo, "SETUP");
+            AuditLog.auditLog("VT200L TCP server started on port " + _portNo, "SETUP_6066");
         }
 
-        // ═══════════════════════════════════════════════════════════════════════
-        //  BACKGROUND DB WRITER THREAD
-        //  Drains _writeQueue in batches. Completely decoupled from TCP threads.
-        //  TCP never waits for DB — it just enqueues and returns immediately.
-        // ═══════════════════════════════════════════════════════════════════════
+        // ── Background DB writer thread ────────────────────────────────────────
         private void StartWriterThread()
         {
             _writerRunning = true;
             _writerThread  = new Thread(WriterLoop)
             {
                 IsBackground = true,
-                Name         = "T711L-DBWriter",
-                Priority     = ThreadPriority.BelowNormal  // never starve TCP threads
+                Name         = "VT200L-DBWriter",
+                Priority     = ThreadPriority.BelowNormal
             };
             _writerThread.Start();
         }
@@ -170,21 +167,19 @@ namespace FX_TCP
                 try
                 {
                     int processed = 0;
-                    // Drain up to _batchSize items per cycle
                     while (processed < _batchSize && _writeQueue.TryDequeue(out DB_Helper_Data data))
                     {
                         SaveToDatabase(data);
                         processed++;
                     }
 
-                    // If queue is empty sleep 100 ms, otherwise run again immediately
                     if (processed == 0)
                         Thread.Sleep(100);
                 }
                 catch (Exception ex)
                 {
-                    AuditLog.auditLog(ex.Message, "WRITER_LOOP_ERR");
-                    Thread.Sleep(500);   // back off on unexpected error
+                    AuditLog.auditLog(ex.Message, "WRITER_LOOP_ERR_6066");
+                    Thread.Sleep(500);
                 }
             }
         }
@@ -196,7 +191,7 @@ namespace FX_TCP
             {
                 using (var dbHelper = new DB_Helper())
                 {
-                    string response = dbHelper.PushDeviceData_PORT_6063(d);
+                    string response = dbHelper.PushDeviceData_PORT_6066(d);
                     sw.Stop();
                     Interlocked.Exchange(ref _lastDbMs, sw.ElapsedMilliseconds);
                     Interlocked.Increment(ref _totalProcessed);
@@ -211,53 +206,39 @@ namespace FX_TCP
                 sw.Stop();
                 Interlocked.Increment(ref _totalDbErrors);
                 AppendLog("[DB-ERR] " + ex.Message, LogLevel.Error);
-                AuditLog.auditLog(d.GpsIMEINumber, ex.Message, "6063_DB_ERR");
+                AuditLog.auditLog(d.GpsIMEINumber, ex.Message, "6066_DB_ERR");
             }
         }
 
-        // ═══════════════════════════════════════════════════════════════════════
-        //  PER-IMEI DEDUPLICATION
-        //  Skip if ALL of these are unchanged within _dedupSeconds:
-        //    - Latitude / Longitude (position)
-        //    - Temperature
-        //    - EventCode
-        //    - EngineStatus
-        //  ALWAYS save: moving vehicle, any alert event, any state change
-        // ═══════════════════════════════════════════════════════════════════════
+        // ── Deduplication ──────────────────────────────────────────────────────
         private bool IsDuplicate(DB_Helper_Data d)
         {
-            // Always save non-heartbeat alert events
-            // 35=interval, 31=heartbeat, 34=passive reply → these are deduplicated
-            // Everything else (ignition, speeding, geo-fence, tow...) → always save
-            if (d.EventCode != "35" && d.EventCode != "31" && d.EventCode != "34")
+            // Always save non-heartbeat events (53=RFID/iButton, etc.)
+            // 0=interval report → deduplicate
+            if (d.EventCode != "0")
                 return false;
 
             if (!_dedupCache.TryGetValue(d.GpsIMEINumber, out DedupEntry last))
-                return false;  // first packet from this IMEI
+                return false;
 
-            // Window expired → save
             if ((d.UpdateTime - last.LastSaved).TotalSeconds > _dedupSeconds)
                 return false;
 
-            // Engine status changed → save
             if (d.EngineStatus != last.Engine)
                 return false;
 
-            // EventCode changed → save
             if (d.EventCode != last.EventCode)
                 return false;
 
-            // Temperature changed (round to 1 decimal to avoid float noise) → save
             if (Math.Abs(d.Temperature - last.Temperature) >= 0.1)
                 return false;
 
-            // Vehicle moved beyond threshold → save
             double distKm = new DB_Helper().distanceInKmBetweenEarthCoordinates(
                 last.Lat, last.Lon, d.Latitude, d.Longitude);
             if (distKm > _distChangeRangeKm)
                 return false;
 
-            return true;  // everything same within window → duplicate, skip
+            return true;
         }
 
         private void UpdateDedupCache(DB_Helper_Data d)
@@ -282,13 +263,13 @@ namespace FX_TCP
                 cs.NoDelay = true;
                 var state = new ClientState(cs);
                 _clients[state.EndPoint] = state;
-                Interlocked.Increment(ref FX_TCP.Class.PublicClass.ActiveConnection_6063);
+                Interlocked.Increment(ref FX_TCP.Class.PublicClass.ActiveConnection_6066);
                 cs.BeginReceive(state.Buffer, 0, state.Buffer.Length,
                     SocketFlags.None, ReceiveCallback, state);
                 AppendLog("Connected: " + state.EndPoint, LogLevel.Info);
             }
             catch (ObjectDisposedException) { return; }
-            catch (Exception ex) { AuditLog.auditLog(ex.Message, "ACCEPT_ERR"); }
+            catch (Exception ex) { AuditLog.auditLog(ex.Message, "ACCEPT_ERR_6066"); }
             finally
             {
                 try { _serverSocket.BeginAccept(AcceptCallback, null); }
@@ -322,7 +303,7 @@ namespace FX_TCP
             }
             catch (Exception ex)
             {
-                AuditLog.auditLog(ex.Message, "RECV_ERR");
+                AuditLog.auditLog(ex.Message, "RECV_ERR_6066");
                 CloseClient(state);
             }
         }
@@ -343,22 +324,41 @@ namespace FX_TCP
             if (raw.Length > 0) state.Accumulator.Append(raw);
         }
 
-        // ── Parse + dedup + enqueue (NO DB call here) ─────────────────────────
+        // ── Parse VT200L packet ────────────────────────────────────────────────
         private void ProcessPacket(ClientState state, string packet)
         {
             try
             {
-                if (!packet.StartsWith("$$") || !packet.Contains(",AAA,"))
+                // VT200L format: &&<pack-no><pack-len>,<ID>,<cmd>,<alm-code>,...
+                if (!packet.StartsWith("&&"))
                 {
-                    AppendLog("[SKIP] Non-AAA: " + Truncate(packet, 60), LogLevel.Debug);
+                    AppendLog("[SKIP] Not VT200L: " + Truncate(packet, 60), LogLevel.Debug);
                     return;
                 }
 
-                int starPos = packet.LastIndexOf('*');
-                if (starPos > 0) packet = packet.Substring(0, starPos);
+                // Extract pack-no (first character after &&)
+                string packNo = packet.Length > 2 ? packet.Substring(2, 1) : "?";
+                state.LastPackNo = packNo;
 
-                string[] f = packet.Split(',');
-                if (f.Length < 19)
+                // Find first comma to split header from data
+                int commaPos = packet.IndexOf(',');
+                if (commaPos < 0)
+                {
+                    Interlocked.Increment(ref _totalParseErrors);
+                    AppendLog("[ERR] No comma found: " + Truncate(packet, 60), LogLevel.Error);
+                    return;
+                }
+
+                // Remove header (&&<pack-no><pack-len>,)
+                string dataStr = packet.Substring(commaPos + 1);
+
+                // Remove checksum if present (last 2 hex chars before \r\n)
+                int lastComma = dataStr.LastIndexOf(',');
+                if (lastComma > 0 && dataStr.Length - lastComma <= 5)
+                    dataStr = dataStr.Substring(0, lastComma);
+
+                string[] f = dataStr.Split(',');
+                if (f.Length < 20)
                 {
                     Interlocked.Increment(ref _totalParseErrors);
                     AppendLog("[ERR] Too few fields (" + f.Length + "): "
@@ -367,41 +367,61 @@ namespace FX_TCP
                 }
 
                 var d = new DB_Helper_Data();
-                d.GpsIMEINumber            = f[1].Trim();
+                
+                // Field mapping (VT200L protocol)
+                d.GpsIMEINumber            = SafeField(f, 0, "");        // <ID>
                 state.LastIMEI             = d.GpsIMEINumber;
-                d.EventCode                = SafeField(f, 3, "0");
-
-                double.TryParse(SafeField(f, 4, "0"), NumberStyles.Float,
+                string cmd                 = SafeField(f, 1, "000");     // <cmd>
+                d.EventCode                = SafeField(f, 2, "0");       // <alm-code>
+                string almData             = SafeField(f, 3, "");        // <alm-data> (RFID/iButton)
+                string dateTime            = SafeField(f, 4, "");        // <date-time>
+                d.Status_PostionValidity   = SafeField(f, 5, "V");       // <fix_flag>
+                
+                double.TryParse(SafeField(f, 6, "0"), NumberStyles.Float,
                     CultureInfo.InvariantCulture, out double lat);
-                double.TryParse(SafeField(f, 5, "0"), NumberStyles.Float,
+                double.TryParse(SafeField(f, 7, "0"), NumberStyles.Float,
                     CultureInfo.InvariantCulture, out double lon);
                 d.Latitude                 = lat;
                 d.Longitude                = lon;
-                d.UpdateTime               = ParseGpsDateTime(SafeField(f, 6, ""), _utcOffsetSeconds);
-                d.Status_PostionValidity   = SafeField(f, 7, "V");
-                d.Status_SateliteCount     = ParseInt(SafeField(f, 8, "0"));
-                d.Status_GSMSignalStrength = ParseInt(SafeField(f, 9, "0"));
-                d.Speed                    = ParseDouble(SafeField(f, 10, "0"));
-                d.Course                   = ParseDouble(SafeField(f, 11, "0"));
-                d.Altitude                 = ParseDouble(SafeField(f, 13, "0"));
-                d.EngineStatus             = DeriveEngineStatus(d.EventCode, SafeField(f, 17, "0000"));
-                d.Fuel                     = ParseFuelFromAnalog(SafeField(f, 18, "0|0|0|0|0"));
-                d.Temperature              = ParseTemperatureFromAnalog(SafeField(f, 18, "0|0|0|0|0"));
+                
+                d.Status_SateliteCount     = ParseInt(SafeField(f, 8, "0"));     // <sat-quantity>
+                // f[9] = HDOP (not stored)
+                d.Speed                    = ParseDouble(SafeField(f, 10, "0")); // <speed>
+                d.Course                   = ParseDouble(SafeField(f, 11, "0")); // <course>
+                d.Altitude                 = ParseDouble(SafeField(f, 12, "0")); // <altitude>
+                // f[13] = odometer (not used here)
+                // f[14] = MCC|MNC|LAC|CI
+                d.Status_GSMSignalStrength = ParseInt(SafeField(f, 15, "0"));    // <CSQ-quality>
+                
+                string systemSta           = SafeField(f, 16, "0");      // <system-sta>
+                d.EngineStatus             = DeriveEngineStatusVT200L(systemSta);
+                
+                string inSta               = SafeField(f, 17, "0");      // <in-sta>
+                string outSta              = SafeField(f, 18, "0");      // <out-sta>
+                string voltages            = SafeField(f, 19, "");       // <ext-V|bat-V|ad1-V|...|adn-V>
+                
+                d.Fuel                     = ParseFuelFromVoltageVT200L(voltages);
+                
+                // Temperature (optional field, may be at index 21 or 22)
+                string tempSensor = "";
+                if (f.Length > 21) tempSensor = SafeField(f, 21, "");
+                if (f.Length > 22 && string.IsNullOrEmpty(tempSensor)) tempSensor = SafeField(f, 22, "");
+                d.Temperature              = ParseTemperatureVT200L(tempSensor);
+                
+                d.UpdateTime               = ParseVT200LDateTime(dateTime, _utcOffsetSeconds);
                 d.Distance                 = "0";
                 d.RemainingCash            = 0;
 
                 AppendLog(string.Format(
-                    "[RX] IMEI:{0} Ev:{1} Lat:{2:F4} Lon:{3:F4} Spd:{4} Eng:{5} GPS:{6} Sats:{7} Temp:{8:F1} Analog:{9} Q:{10}",
+                    "[RX] IMEI:{0} Ev:{1} Lat:{2:F4} Lon:{3:F4} Spd:{4} Eng:{5} GPS:{6} Sats:{7} Temp:{8:F1} Q:{9}",
                     d.GpsIMEINumber, d.EventCode, d.Latitude, d.Longitude,
                     d.Speed, d.EngineStatus, d.Status_PostionValidity,
-                    d.Status_SateliteCount, d.Temperature,
-                    SafeField(f, 18, "N/A"), _writeQueue.Count), LogLevel.Debug); // Changed to Debug to reduce UI spam
+                    d.Status_SateliteCount, d.Temperature, _writeQueue.Count), LogLevel.Debug); // Changed to Debug to reduce UI spam
 
-                // ── Send Server Acknowledgment (CRITICAL: prevents device buffer overflow) ──
-                SendT711LACK(state.Socket, d.GpsIMEINumber, SafeField(f, 0, "$$"));
+                // Server acknowledgment (VT200L requires reply with same pack-no)
+                SendVT200LAck(state.Socket, packNo, d.GpsIMEINumber, cmd);
 
-                // ── Deduplication ─────────────────────────────────────────────
-                // Skip if same position/temp/engine/event within _dedupSeconds (10s)
+                // Deduplication
                 if (IsDuplicate(d))
                 {
                     Interlocked.Increment(ref _totalDeduped);
@@ -409,23 +429,67 @@ namespace FX_TCP
                     return;
                 }
 
-                // Update cache BEFORE enqueue — handles burst replays
                 UpdateDedupCache(d);
-
-                // Enqueue — TCP thread never waits for DB
                 _writeQueue.Enqueue(d);
 
                 if (_isLiveMode)
                     AuditLog.auditLog(d.GpsIMEINumber,
-                        JsonConvert.SerializeObject(d), "6063_PARSED");
+                        JsonConvert.SerializeObject(d), "6066_PARSED");
             }
             catch (Exception ex)
             {
                 Interlocked.Increment(ref _totalParseErrors);
                 AppendLog("[PARSE-ERR] " + ex.Message, LogLevel.Error);
                 AuditLog.auditLog(ex.Message + " | " + Truncate(packet, 100),
-                    "6063_PACKET_ERR");
+                    "6066_PACKET_ERR");
             }
+        }
+
+        // ── Send VT200L acknowledgment ─────────────────────────────────────────
+        private void SendVT200LAck(Socket socket, string packNo, string imei, string cmd)
+        {
+            try
+            {
+                // Format: $$<pack-no><pack-len>,<ID>,<cmd-code>,<cmd-data><checksum>\r\n
+                // For acknowledgment: $$<pack-no><len>,<IMEI>,<cmd>,1<checksum>\r\n
+                string dataStr = string.Format("{0},{1},1", imei, cmd);
+                int dataLen = dataStr.Length;
+                string preChecksum = string.Format("$${0}{1},{2}", packNo, dataLen, dataStr);
+                
+                string checksum = CalculateChecksum(preChecksum);
+                string response = preChecksum + checksum + "\r\n";
+                
+                byte[] data = Encoding.ASCII.GetBytes(response);
+                socket.BeginSend(data, 0, data.Length, SocketFlags.None, SendCallback, socket);
+                
+                AppendLog("[ACK] " + response.Replace("\r\n", ""), LogLevel.Debug);
+            }
+            catch (Exception ex)
+            {
+                AuditLog.auditLog(ex.Message, "SEND_ACK_ERR_6066");
+            }
+        }
+
+        private void SendCallback(IAsyncResult ar)
+        {
+            try
+            {
+                Socket socket = (Socket)ar.AsyncState;
+                socket.EndSend(ar);
+            }
+            catch (Exception ex)
+            {
+                AuditLog.auditLog(ex.Message, "SEND_CALLBACK_ERR_6066");
+            }
+        }
+
+        // ── Calculate checksum (XOR of all bytes) ──────────────────────────────
+        private string CalculateChecksum(string data)
+        {
+            byte checksum = 0;
+            foreach (char c in data)
+                checksum ^= (byte)c;
+            return checksum.ToString("X2");
         }
 
         // ── UI timer (1 s) ─────────────────────────────────────────────────────
@@ -487,12 +551,12 @@ namespace FX_TCP
 
                 // Status bar (every tick)
                 SetStatus(string.Format(
-                    "Port:{0}  Conn:{1}  Rate:{2}/s  Q:{3}  Deduped:{4}  CPU:{5:0}%  Mem:{6}MB",
+                    "VT200L Port:{0}  Conn:{1}  Rate:{2}/s  Q:{3}  Deduped:{4}  CPU:{5:0}%  Mem:{6}MB",
                     _portNo, _clients.Count, rate,
                     _writeQueue.Count,
                     _totalDeduped, cpu, memMb), Color.LightGreen);
             }
-            catch (Exception ex) { AuditLog.auditLog(ex.Message, "TIMER_ERR"); }
+            catch (Exception ex) { AuditLog.auditLog(ex.Message, "TIMER_ERR_6066"); }
         }
 
         // ── Connection ListView ────────────────────────────────────────────────
@@ -525,7 +589,7 @@ namespace FX_TCP
             if (rtbLog == null) return;
             
             // PERFORMANCE FIX: Skip Debug level logs in production to prevent UI flooding
-            // At 38 packets/second, logging every packet freezes the UI
+            // At high packet rates, logging every packet freezes the UI
             if (level == LogLevel.Debug)
                 return;
             
@@ -595,21 +659,21 @@ namespace FX_TCP
         }
 
         // ── Form closing ───────────────────────────────────────────────────────
-        private void frm6063_FormClosing(object sender, FormClosingEventArgs e)
+        private void frm6066_FormClosing(object sender, FormClosingEventArgs e)
         {
             try
             {
                 timerUI.Stop();
-                _writerRunning = false;         // signal writer thread to stop
+                _writerRunning = false;
                 _cpuCounter?.Dispose();
                 foreach (var kv in _clients) CloseClient(kv.Value);
                 _clients.Clear();
                 try { _serverSocket?.Shutdown(SocketShutdown.Both); } catch { }
                 try { _serverSocket?.Close(); }                        catch { }
-                AuditLog.auditLog("frm6063 closed. QueueRemaining=" +
-                    _writeQueue.Count, "SHUTDOWN");
+                AuditLog.auditLog("frm6066 closed. QueueRemaining=" +
+                    _writeQueue.Count, "SHUTDOWN_6066");
             }
-            catch (Exception ex) { AuditLog.auditLog(ex.Message, "CLOSE_FORM_ERR"); }
+            catch (Exception ex) { AuditLog.auditLog(ex.Message, "CLOSE_FORM_ERR_6066"); }
         }
 
         // ── Close one client ───────────────────────────────────────────────────
@@ -618,14 +682,14 @@ namespace FX_TCP
             try
             {
                 _clients.TryRemove(state.EndPoint, out _);
-                Interlocked.Decrement(ref FX_TCP.Class.PublicClass.ActiveConnection_6063);
+                Interlocked.Decrement(ref FX_TCP.Class.PublicClass.ActiveConnection_6066);
                 try { state.Socket.Shutdown(SocketShutdown.Both); } catch { }
                 try { state.Socket.Close(); }                        catch { }
                 AppendLog("Disconnected: " + state.EndPoint +
                     (string.IsNullOrEmpty(state.LastIMEI) ? "" : "  IMEI:" + state.LastIMEI),
                     LogLevel.Warning);
             }
-            catch (Exception ex) { AuditLog.auditLog(ex.Message, "CLOSE_ERR"); }
+            catch (Exception ex) { AuditLog.auditLog(ex.Message, "CLOSE_ERR_6066"); }
         }
 
         // ── Badge / status helpers ─────────────────────────────────────────────
@@ -650,39 +714,19 @@ namespace FX_TCP
             SetStatus(msg, Color.OrangeRed);
         }
 
-        // ── Protocol parsing helpers ───────────────────────────────────────────
-        private static string DeriveEngineStatus(string eventCode, string ioPortHex)
-        {
-            // Event code 1 = Ignition ON event
-            if (eventCode == "1") return "1";
-            // Event code 9 = Ignition OFF event
-            if (eventCode == "9") return "0";
-            
-            try
-            {
-                string hex = ioPortHex.Trim();
-                if (hex.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
-                    hex = hex.Substring(2);
-                
-                int ioPort = Convert.ToInt32(hex, 16);
-                
-                // FIXED: ACC/Ignition is on bit 8 (0x0100), not bit 0 (0x0001)
-                // 0x0100 = ignition ON, 0x0000 = ignition OFF
-                return ((ioPort & 0x0100) != 0) ? "1" : "0";
-            }
-            catch { return "0"; }
-        }
-
-        private static DateTime ParseGpsDateTime(string raw, int utcOffsetSec)
+        // ── VT200L protocol parsing helpers ────────────────────────────────────
+        
+        // Parse VT200L date-time: "210526063453" = 2021-05-26 06:34:53
+        private static DateTime ParseVT200LDateTime(string raw, int utcOffsetSec)
         {
             try
             {
                 raw = raw.Trim();
                 if (raw.Length < 12) return DateTime.Now;
                 return new DateTime(
-                    2000 + int.Parse(raw.Substring(4, 2)),
+                    2000 + int.Parse(raw.Substring(0, 2)),
                     int.Parse(raw.Substring(2, 2)),
-                    int.Parse(raw.Substring(0, 2)),
+                    int.Parse(raw.Substring(4, 2)),
                     int.Parse(raw.Substring(6, 2)),
                     int.Parse(raw.Substring(8, 2)),
                     int.Parse(raw.Substring(10, 2)),
@@ -691,41 +735,69 @@ namespace FX_TCP
             catch { return DateTime.Now; }
         }
 
-        private static double ParseFuelFromAnalog(string analog)
+        // Parse engine status from system-sta hex value
+        // Bit3=1: external power connected (engine ON)
+        private static string DeriveEngineStatusVT200L(string systemStaHex)
         {
             try
             {
-                string[] p = analog.Trim().Split('|');
-                return p.Length > 0
-                    ? double.Parse(p[0].Trim(), CultureInfo.InvariantCulture) : 0;
+                string hex = systemStaHex.Trim();
+                if (string.IsNullOrEmpty(hex)) return "0";
+                int val = Convert.ToInt32(hex, 16);
+                // Bit 3 = external power connected
+                return ((val & 0x08) != 0) ? "1" : "0";
+            }
+            catch { return "0"; }
+        }
+
+        // Parse fuel from voltage string: "0508|01A0|0000|0000"
+        // AD1 (index 2) is fuel sensor: 0x01C8 = 456 dec, 456/100 = 4.56V
+        // Fuel % = (4.56/5)*100 = 91.2%
+        // Fuel liters = (4.56/5)*50 = 45.6 (assuming 50L tank)
+        private static double ParseFuelFromVoltageVT200L(string voltages)
+        {
+            try
+            {
+                string[] parts = voltages.Trim().Split('|');
+                if (parts.Length <= 2) return 0;
+                
+                string ad1Hex = parts[2].Trim();
+                if (string.IsNullOrEmpty(ad1Hex) || ad1Hex == "0000") return 0;
+                
+                int ad1Val = Convert.ToInt32(ad1Hex, 16);
+                double ad1Voltage = ad1Val / 100.0;
+                
+                // Assuming 5V = 100%, 50L tank
+                // Adjust these constants based on your actual sensor and tank
+                const double MAX_VOLTAGE = 5.0;
+                const double TANK_CAPACITY_LITERS = 50.0;
+                
+                double fuelLiters = (ad1Voltage / MAX_VOLTAGE) * TANK_CAPACITY_LITERS;
+                return fuelLiters;
             }
             catch { return 0; }
         }
 
-        // MeiTrack T711L analog field: AD1|AD2|Temp1|Temp2|...
-        // Temperature is at index 2 (0-based). Raw value is in 0.1°C units.
-        // e.g. "1234|5678|256|0|0" → temp = 256 / 10.0 = 25.6°C
-        // Adjust TEMP_INDEX or scaling below if your firmware differs.
-        private const int TEMP_ANALOG_INDEX = 2;
-        private static double ParseTemperatureFromAnalog(string analog)
+        // Parse temperature: "010109D9" or "010109"
+        // Format: 01 = sensor#1, 0109 = hex value
+        // 0x0109 = 265 dec, temp = 265/10 = 26.5°C
+        // If highest bit is 1, temperature is negative
+        private static double ParseTemperatureVT200L(string tempSensor)
         {
             try
             {
-                string[] p = analog.Trim().Split('|');
-                if (p.Length <= TEMP_ANALOG_INDEX) return 0;
-
-                string raw = p[TEMP_ANALOG_INDEX].Trim();
-                if (string.IsNullOrEmpty(raw) || raw == "0") return 0;
-
-                // T711L encodes temperature as signed 16-bit in 0.1°C units
-                if (!double.TryParse(raw, NumberStyles.Float,
-                    CultureInfo.InvariantCulture, out double rawVal))
+                if (string.IsNullOrEmpty(tempSensor) || tempSensor.Length < 6)
                     return 0;
-
-                // Handle signed: values > 32767 are negative (e.g. 65436 = -1.0°C)
-                if (rawVal > 32767) rawVal -= 65536;
-
-                return rawVal / 10.0;
+                
+                // Extract hex value (skip first 2 chars = sensor number)
+                string tempHex = tempSensor.Substring(2, 4);
+                int tempVal = Convert.ToInt32(tempHex, 16);
+                
+                // Check if negative (highest bit of 16-bit value)
+                if (tempVal > 32767)
+                    tempVal -= 65536;
+                
+                return tempVal / 10.0;
             }
             catch { return 0; }
         }
@@ -736,88 +808,42 @@ namespace FX_TCP
             catch { return false; }
         }
 
-        // ── Tiny utilities ─────────────────────────────────────────────────────
-        private static string SafeField(string[] a, int i, string def)
-            => (i < a.Length && !string.IsNullOrWhiteSpace(a[i])) ? a[i].Trim() : def;
-
-        private static double ParseDouble(string s)
+        private static string SafeField(string[] arr, int idx, string def)
         {
-            double.TryParse(s, NumberStyles.Float,
-                CultureInfo.InvariantCulture, out double v);
-            return v;
+            return (arr != null && idx >= 0 && idx < arr.Length) ? arr[idx] : def;
         }
 
         private static int ParseInt(string s)
-        { int.TryParse(s, out int v); return v; }
-
-        private static string Truncate(string s, int max)
-            => s.Length > max ? s.Substring(0, max) + "…" : s;
-
-        private static string FormatBig(long n)
-            => n >= 1_000_000 ? (n / 1_000_000.0).ToString("0.0") + "M"
-             : n >= 1_000     ? (n / 1_000.0).ToString("0.0") + "K"
-             : n.ToString();
-
-        private static string FormatUptime(TimeSpan ts)
-            => string.Format("{0}d {1:D2}h {2:D2}m",
-                (int)ts.TotalDays, ts.Hours, ts.Minutes);
-
-        // ══════════════════════════════════════════════════════════════════════
-        //  T711L SERVER ACKNOWLEDGMENT
-        //  MeiTrack T711L devices REQUIRE server acknowledgment to clear their
-        //  internal buffer. Without ACK, device buffer fills up (2048/2048) and
-        //  new GPS data is lost.
-        //  
-        //  ACK Format: $$<device-id>,<IMEI>,AAA,<seq>*<checksum>\r\n
-        //  Example: $$A35,863911064426335,AAA,35*6F\r\n
-        // ══════════════════════════════════════════════════════════════════════
-        private void SendT711LACK(Socket socket, string imei, string deviceHeader)
         {
-            try
-            {
-                // Extract device ID from header ($$A35 → A35)
-                string deviceId = "A35";  // default
-                if (!string.IsNullOrEmpty(deviceHeader) && deviceHeader.StartsWith("$$"))
-                {
-                    deviceId = deviceHeader.Substring(2);  // remove $$
-                }
-
-                // Build ACK: $$<device-id>,<IMEI>,AAA,35
-                string ackBase = string.Format("$${0},{1},AAA,35", deviceId, imei);
-                
-                // Calculate checksum (XOR of all bytes)
-                byte checksum = 0;
-                foreach (char c in ackBase)
-                    checksum ^= (byte)c;
-                
-                // Final ACK: $$A35,863911064426335,AAA,35*6F\r\n
-                string ack = string.Format("{0}*{1:X2}\r\n", ackBase, checksum);
-                
-                // Send asynchronously (non-blocking)
-                byte[] ackBytes = Encoding.ASCII.GetBytes(ack);
-                socket.BeginSend(ackBytes, 0, ackBytes.Length, SocketFlags.None, SendCallback, socket);
-                
-                AppendLog("[ACK] " + ack.Replace("\r\n", ""), LogLevel.Debug);
-            }
-            catch (Exception ex)
-            {
-                AuditLog.auditLog(ex.Message, "SEND_ACK_ERR_6063");
-                // Don't throw - ACK send failure shouldn't crash the TCP thread
-            }
+            return int.TryParse(s, NumberStyles.Integer,
+                CultureInfo.InvariantCulture, out int val) ? val : 0;
         }
 
-        private void SendCallback(IAsyncResult ar)
+        private static double ParseDouble(string s)
         {
-            try
-            {
-                Socket socket = (Socket)ar.AsyncState;
-                socket.EndSend(ar);
-            }
-            catch (Exception ex)
-            {
-                AuditLog.auditLog(ex.Message, "SEND_CALLBACK_ERR_6063");
-                // Silent fail - socket might have closed, that's OK
-            }
+            return double.TryParse(s, NumberStyles.Float,
+                CultureInfo.InvariantCulture, out double val) ? val : 0;
+        }
+
+        private static string Truncate(string s, int maxLen)
+        {
+            return (s.Length <= maxLen) ? s : s.Substring(0, maxLen) + "...";
+        }
+
+        private static string FormatBig(long n)
+        {
+            if (n >= 1000000) return (n / 1000000.0).ToString("0.0") + "M";
+            if (n >= 1000)    return (n / 1000.0).ToString("0.0") + "K";
+            return n.ToString();
+        }
+
+        private static string FormatUptime(TimeSpan ts)
+        {
+            if (ts.TotalDays >= 1)
+                return string.Format("{0}d {1:00}h {2:00}m", (int)ts.TotalDays, ts.Hours, ts.Minutes);
+            if (ts.TotalHours >= 1)
+                return string.Format("{0:00}h {1:00}m {2:00}s", (int)ts.TotalHours, ts.Minutes, ts.Seconds);
+            return string.Format("{0:00}m {1:00}s", ts.Minutes, ts.Seconds);
         }
     }
 }

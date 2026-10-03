@@ -24,6 +24,7 @@ namespace FX_TCP
             this.servicePORTToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.t366ToolStripMenuItem  = new System.Windows.Forms.ToolStripMenuItem();
             this.t711LToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.vt200LToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip      = new System.Windows.Forms.StatusStrip();
             this.lblCPU_Usages    = new System.Windows.Forms.ToolStripStatusLabel();
             this.cpuUsages_ProgressBar = new System.Windows.Forms.ToolStripProgressBar();
@@ -55,7 +56,8 @@ namespace FX_TCP
             this.servicePORTToolStripMenuItem.DropDownItems.AddRange(
                 new System.Windows.Forms.ToolStripItem[] {
                     this.t366ToolStripMenuItem,
-                    this.t711LToolStripMenuItem });
+                    this.t711LToolStripMenuItem,
+                    this.vt200LToolStripMenuItem });
 
             this.t366ToolStripMenuItem.Text         = "6062  —  T366 (Meitrack)";
             this.t366ToolStripMenuItem.Name         = "t366ToolStripMenuItem";
@@ -67,6 +69,11 @@ namespace FX_TCP
             this.t711LToolStripMenuItem.Name         = "t711LToolStripMenuItem";
             this.t711LToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F4;
             this.t711LToolStripMenuItem.Click       += new System.EventHandler(this.t711LToolStripMenuItem_Click);
+
+            this.vt200LToolStripMenuItem.Text         = "6066  —  VT200L";
+            this.vt200LToolStripMenuItem.Name         = "vt200LToolStripMenuItem";
+            this.vt200LToolStripMenuItem.ShortcutKeys = System.Windows.Forms.Keys.F5;
+            this.vt200LToolStripMenuItem.Click       += new System.EventHandler(this.vt200LToolStripMenuItem_Click);
 
             // ── statusStrip ───────────────────────────────────────────────────
             this.statusStrip.BackColor  = System.Drawing.Color.FromArgb(15, 15, 25);
@@ -148,6 +155,7 @@ namespace FX_TCP
         private System.ComponentModel.BackgroundWorker     backgroundWorker1;
         private System.Windows.Forms.ToolStripMenuItem     t366ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem     t711LToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem     vt200LToolStripMenuItem;
         private System.Windows.Forms.Timer                 timer_AutoOnOff;
     }
 }

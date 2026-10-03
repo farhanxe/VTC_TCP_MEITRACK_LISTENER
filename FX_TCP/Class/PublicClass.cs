@@ -14,5 +14,8 @@ namespace FX_TCP.Class
 
         // Active TCP connections on port 6063 (MeiTrack T711L)
         public static int ActiveConnection_6063 = 0;
+
+        // Active TCP connections on port 6066 (VT200L)
+        public static int ActiveConnection_6066 = 0;
     }
 }

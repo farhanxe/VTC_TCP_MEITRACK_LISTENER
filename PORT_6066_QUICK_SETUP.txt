@@ -1,0 +1,282 @@
+╔═══════════════════════════════════════════════════════════════════════════╗
+║                    PORT 6066 - QUICK SETUP GUIDE                          ║
+║                   Windows Server Configuration                            ║
+╚═══════════════════════════════════════════════════════════════════════════╝
+
+═══════════════════════════════════════════════════════════════════════════
+  STEP 1: OPEN PORT 6066 IN WINDOWS FIREWALL
+═══════════════════════════════════════════════════════════════════════════
+
+▶ METHOD 1: PowerShell (FASTEST - RECOMMENDED)
+────────────────────────────────────────────────────────────────────────────
+1. Press Win + X
+2. Click "Windows PowerShell (Admin)"
+3. Run this command:
+
+   New-NetFirewallRule -DisplayName "VT200L GPS Tracker Port 6066" `
+     -Direction Inbound `
+     -LocalPort 6066 `
+     -Protocol TCP `
+     -Action Allow `
+     -Profile Any `
+     -Enabled True
+
+4. Verify:
+
+   Get-NetFirewallRule -DisplayName "VT200L GPS Tracker Port 6066"
+
+✅ DONE! Port 6066 is open.
+
+
+▶ METHOD 2: GUI (If you prefer visual)
+────────────────────────────────────────────────────────────────────────────
+1. Press Win + R
+2. Type: wf.msc
+3. Press Enter
+4. Click "Inbound Rules"
+5. Click "New Rule..."
+6. Select: Port → Next
+7. Protocol: TCP, Port: 6066 → Next
+8. Action: Allow the connection → Next
+9. Profile: Check ALL (Domain, Private, Public) → Next
+10. Name: VT200L GPS Tracker Port 6066 → Finish
+
+✅ DONE! Port 6066 is open.
+
+
+═══════════════════════════════════════════════════════════════════════════
+  STEP 2: VERIFY PORT IS OPEN
+═══════════════════════════════════════════════════════════════════════════
+
+▶ Check Firewall Rule:
+────────────────────────────────────────────────────────────────────────────
+PowerShell:
+   Get-NetFirewallRule -DisplayName "*6066*" | Format-List
+
+Expected: Rule exists, Enabled = True
+
+
+▶ Check Application is Listening (After starting FX_TCP):
+────────────────────────────────────────────────────────────────────────────
+PowerShell:
+   Get-NetTCPConnection -LocalPort 6066
+
+Command Prompt:
+   netstat -an | findstr ":6066"
+
+Expected:
+   TCP    0.0.0.0:6066           0.0.0.0:0              LISTENING
+
+✅ If you see this, port 6066 is working!
+
+
+═══════════════════════════════════════════════════════════════════════════
+  STEP 3: ROUTER PORT FORWARDING (If behind router/NAT)
+═══════════════════════════════════════════════════════════════════════════
+
+▶ Find Server Local IP:
+────────────────────────────────────────────────────────────────────────────
+Command Prompt:
+   ipconfig
+
+Look for: IPv4 Address . . . . : 192.168.1.XXX
+
+
+▶ Configure Router:
+────────────────────────────────────────────────────────────────────────────
+1. Login to router (usually http://192.168.1.1)
+2. Find "Port Forwarding" or "Virtual Server"
+3. Create rule:
+   - Service Name: GPS Tracker 6066
+   - External Port: 6066
+   - Internal Port: 6066
+   - Internal IP: 192.168.1.XXX (your server IP)
+   - Protocol: TCP
+   - Status: Enabled
+4. Save and reboot router
+
+
+▶ Find Public IP:
+────────────────────────────────────────────────────────────────────────────
+Visit: https://www.whatismyip.com/
+
+Or PowerShell:
+   (Invoke-WebRequest -Uri "https://api.ipify.org").Content
+
+Example: 203.112.45.67
+
+
+═══════════════════════════════════════════════════════════════════════════
+  STEP 4: TEST PORT ACCESSIBILITY
+═══════════════════════════════════════════════════════════════════════════
+
+▶ Test Locally:
+────────────────────────────────────────────────────────────────────────────
+PowerShell:
+   Test-NetConnection -ComputerName localhost -Port 6066
+
+Expected: TcpTestSucceeded : True
+
+
+▶ Test from Internet:
+────────────────────────────────────────────────────────────────────────────
+Visit: https://www.yougetsignal.com/tools/open-ports/
+Enter: IP = <your_public_ip>, Port = 6066
+
+Expected: "Port 6066 is open"
+
+
+═══════════════════════════════════════════════════════════════════════════
+  STEP 5: CONFIGURE VT200L DEVICES
+═══════════════════════════════════════════════════════════════════════════
+
+Send SMS to each device:
+
+▶ Set Server IP and Port:
+────────────────────────────────────────────────────────────────────────────
+   100,<server_ip>,6066
+
+Example:
+   100,203.112.45.67,6066        (If internet/public IP)
+   100,192.168.1.100,6066        (If local network only)
+
+
+▶ Set Reporting Interval (30 seconds):
+────────────────────────────────────────────────────────────────────────────
+   101,30
+
+
+▶ Enable GPS:
+────────────────────────────────────────────────────────────────────────────
+   102,1
+
+
+▶ Verify Configuration:
+────────────────────────────────────────────────────────────────────────────
+Send: 101
+
+Device should reply with current settings.
+
+
+═══════════════════════════════════════════════════════════════════════════
+  TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════════════
+
+❌ Problem: Port test fails
+────────────────────────────────────────────────────────────────────────────
+1. Check firewall rule is enabled:
+   Get-NetFirewallRule -DisplayName "*6066*"
+
+2. Check application is running:
+   Get-NetTCPConnection -LocalPort 6066
+
+3. Temporarily disable firewall to test:
+   Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
+   (Remember to re-enable after testing!)
+
+
+❌ Problem: Application won't start on port 6066
+────────────────────────────────────────────────────────────────────────────
+Find what's using the port:
+   Get-NetTCPConnection -LocalPort 6066
+
+Kill the process:
+   Stop-Process -Id <ProcessID> -Force
+
+
+❌ Problem: No packets from devices
+────────────────────────────────────────────────────────────────────────────
+Checklist:
+[ ] Port 6066 is open in firewall
+[ ] FX_TCP application is running
+[ ] frm6066 form is open
+[ ] Status shows "Listening on :6066"
+[ ] Green indicator is lit
+[ ] Router port forwarding configured (if behind NAT)
+[ ] Devices configured with correct IP:6066
+[ ] Devices have internet connectivity
+[ ] Devices registered in VehicleTrackingInformation table
+
+
+═══════════════════════════════════════════════════════════════════════════
+  QUICK REFERENCE COMMANDS
+═══════════════════════════════════════════════════════════════════════════
+
+▶ Create Firewall Rule:
+   New-NetFirewallRule -DisplayName "VT200L GPS Tracker Port 6066" `
+     -Direction Inbound -LocalPort 6066 -Protocol TCP -Action Allow
+
+▶ Check Firewall Rule:
+   Get-NetFirewallRule -DisplayName "*6066*"
+
+▶ Check Listening Ports:
+   Get-NetTCPConnection -LocalPort 6066
+
+▶ Check Active Connections:
+   Get-NetTCPConnection -LocalPort 6066 | Format-Table
+
+▶ Test Port:
+   Test-NetConnection -ComputerName localhost -Port 6066
+
+▶ View All Listening Ports:
+   netstat -an | findstr "LISTENING"
+
+▶ Find Process Using Port:
+   Get-NetTCPConnection -LocalPort 6066 | Select OwningProcess
+
+▶ Get Process Name:
+   Get-Process -Id <ProcessID>
+
+
+═══════════════════════════════════════════════════════════════════════════
+  SUCCESS INDICATORS
+═══════════════════════════════════════════════════════════════════════════
+
+You'll know it's working when:
+
+✅ frm6066 form shows:
+   - Status: "Listening on :6066"
+   - Green indicator light
+   - Connections: 1 or more
+   - RX counter increasing
+   - Log shows: "[RX] IMEI:xxxxx..."
+   - Log shows: "[ACK] $$..."
+   - Log shows: "[DB] VT200L-UpdateInsert-OK"
+
+✅ Database query returns data:
+   SELECT TOP 10 * FROM VehicleTracking 
+   WHERE GpsIMEINumber = '<your_imei>'
+   ORDER BY UpdateTime DESC
+
+✅ Online port checker shows: "Port 6066 is open"
+
+
+═══════════════════════════════════════════════════════════════════════════
+  COMPLETE DEPLOYMENT SEQUENCE
+═══════════════════════════════════════════════════════════════════════════
+
+1. [ ] Open port 6066 in Windows Firewall (PowerShell command above)
+2. [ ] Run VT200L_StoredProcedures.sql in SQL Server
+3. [ ] Build FX_TCP solution in Visual Studio
+4. [ ] Deploy FX_TCP.exe to server
+5. [ ] Configure router port forwarding (if behind NAT)
+6. [ ] Launch FX_TCP.exe
+7. [ ] Open frm6066 form
+8. [ ] Verify "Listening on :6066" status
+9. [ ] Register device IMEIs in VehicleTrackingInformation table
+10. [ ] Configure VT200L devices via SMS
+11. [ ] Wait 1-2 minutes for first packet
+12. [ ] Monitor connections in frm6066 form
+13. [ ] Verify data in database
+
+
+═══════════════════════════════════════════════════════════════════════════
+
+🎉 ALL DONE! Your port 6066 is now ready for VT200L GPS trackers! 🚀
+
+For detailed information, see:
+  - WINDOWS_SERVER_PORT_SETUP_6066.md (complete guide)
+  - VT200L_DEPLOYMENT_GUIDE.md (full deployment)
+  - QUICK_START_6066.txt (5-minute quick start)
+
+═══════════════════════════════════════════════════════════════════════════
